@@ -1,0 +1,119 @@
+const Database = require('better-sqlite3');
+const fs = require('fs');
+const path = require('path');
+const cfg = require('./config');
+const { nowLocal, addMinutes, addDays } = require('./util');
+
+fs.mkdirSync(cfg.DATA_DIR, { recursive: true });
+const db = new Database(path.join(cfg.DATA_DIR, process.env.DB_FILE || 'app.db'));
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS cities (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name_uz TEXT NOT NULL, name_ru TEXT NOT NULL, name_en TEXT NOT NULL,
+  country TEXT NOT NULL DEFAULT 'UZ'
+);
+CREATE TABLE IF NOT EXISTS buses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL, plate TEXT DEFAULT '', model TEXT DEFAULT '',
+  seats INTEGER NOT NULL DEFAULT 40, amenities TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS schedules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_id INTEGER NOT NULL REFERENCES cities(id),
+  to_id INTEGER NOT NULL REFERENCES cities(id),
+  depart_time TEXT NOT NULL, duration_min INTEGER NOT NULL, price INTEGER NOT NULL,
+  bus_id INTEGER NOT NULL REFERENCES buses(id),
+  platform TEXT DEFAULT '', active INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS trips (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  schedule_id INTEGER REFERENCES schedules(id) ON DELETE SET NULL,
+  from_id INTEGER NOT NULL REFERENCES cities(id),
+  to_id INTEGER NOT NULL REFERENCES cities(id),
+  depart_at TEXT NOT NULL, arrive_at TEXT NOT NULL, duration_min INTEGER NOT NULL,
+  price INTEGER NOT NULL,
+  bus_id INTEGER NOT NULL REFERENCES buses(id),
+  platform TEXT DEFAULT '', status TEXT NOT NULL DEFAULT 'active',
+  UNIQUE(schedule_id, depart_at)
+);
+CREATE INDEX IF NOT EXISTS idx_trips_search ON trips(from_id, to_id, depart_at);
+CREATE TABLE IF NOT EXISTS blocked (
+  trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  seat_no INTEGER NOT NULL, reason TEXT DEFAULT '',
+  PRIMARY KEY(trip_id, seat_no)
+);
+CREATE TABLE IF NOT EXISTS holds (
+  token TEXT NOT NULL,
+  trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  seat_no INTEGER NOT NULL, expires_at INTEGER NOT NULL,
+  PRIMARY KEY(trip_id, seat_no)
+);
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE, pass_hash TEXT NOT NULL,
+  name TEXT DEFAULT '', phone TEXT DEFAULT '', lang TEXT DEFAULT 'uz',
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  guest_key TEXT,
+  trip_id INTEGER NOT NULL REFERENCES trips(id),
+  phone TEXT NOT NULL,
+  amount INTEGER NOT NULL, fee INTEGER NOT NULL, total INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  sms_code TEXT, sms_tries INTEGER NOT NULL DEFAULT 0,
+  created_ms INTEGER NOT NULL, created_at TEXT NOT NULL, paid_at TEXT
+);
+CREATE TABLE IF NOT EXISTS tickets (
+  id TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  trip_id INTEGER NOT NULL REFERENCES trips(id),
+  seat_no INTEGER NOT NULL,
+  fio TEXT NOT NULL, gender TEXT NOT NULL,
+  passport TEXT DEFAULT '', birth TEXT DEFAULT '',
+  price INTEGER NOT NULL, number TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'pending',
+  returned_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ticket_seat ON tickets(trip_id, seat_no) WHERE status IN ('pending','active');
+CREATE TABLE IF NOT EXISTS codes (
+  kind TEXT NOT NULL, key TEXT NOT NULL, code TEXT NOT NULL, expires_at INTEGER NOT NULL,
+  PRIMARY KEY(kind, key)
+);
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER, guest_key TEXT,
+  title TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL
+);
+`);
+
+// Takrorlanuvchi jadvaldan kelgusi kunlar uchun reyslar yaratish
+function ensureTrips(days = 21) {
+  const now = nowLocal();
+  const today = now.slice(0, 10);
+  const schedules = db.prepare('SELECT * FROM schedules WHERE active = 1').all();
+  const ins = db.prepare(`INSERT OR IGNORE INTO trips
+    (schedule_id, from_id, to_id, depart_at, arrive_at, duration_min, price, bus_id, platform)
+    VALUES (?,?,?,?,?,?,?,?,?)`);
+  const tx = db.transaction(() => {
+    for (const s of schedules) {
+      for (let d = 0; d < days; d++) {
+        const dep = addDays(today, d) + ' ' + s.depart_time;
+        if (dep <= now) continue;
+        ins.run(s.id, s.from_id, s.to_id, dep, addMinutes(dep, s.duration_min), s.duration_min, s.price, s.bus_id, s.platform);
+      }
+    }
+  });
+  tx();
+}
+
+module.exports = { db, ensureTrips };

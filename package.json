@@ -1,0 +1,21 @@
+{
+  "name": "avtobus-bilet",
+  "version": "1.0.0",
+  "description": "Avtobus chiptalari veb-sayti: reys qidirish, o'rin tanlash, to'lov, QR chipta va admin panel",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "seed": "node server/seed.js",
+    "test": "node test/i18n.js && node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "express": "^4.21.0",
+    "qrcode": "^1.5.4"
+  },
+  "license": "MIT"
+}
