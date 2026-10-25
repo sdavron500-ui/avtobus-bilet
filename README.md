@@ -46,6 +46,12 @@ Sozlamalar uchun `.env.example` ni `.env` ga nusxalab, kerakli qiymatlarni o'zga
 - Avtobuslar (o'rinlar soni, qulayliklar), shaharlar, buyurtmalar
 - Chipta tekshirish: nazoratchi chipta raqamini kiritib, chipta yaroqli ekanini ko'radi
 
+## Bitta HTML fayl (demo)
+
+`standalone/marshrut-demo.html` — butun sayt bitta faylda, serversiz ochiladi (ikki marta bosish yetadi).
+Backend o'rniga brauzer ichidagi soxta nusxa ishlaydi, ma'lumot `localStorage`da turadi. Faqat ko'rsatish uchun:
+haqiqiy sotuv va admin panel yo'q. Qayta yig'ish: `node standalone/build.js`.
+
 ## Haqiqiy ishga tushirishdan oldin (muhim)
 
 1. **To'lov.** Hozir `DEMO=1`: pul yechilmaydi, SMS kodi doim `123456`. Haqiqiy to'lov uchun `server/payment.js`
