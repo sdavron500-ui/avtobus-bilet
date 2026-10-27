@@ -59,6 +59,7 @@ function tripOut(t) {
     to: { id: t.to_id, uz: t.c_uz, ru: t.c_ru, en: t.c_en, country: t.c_country },
     departAt: t.depart_at, arriveAt: t.arrive_at, duration: t.duration_min,
     price: t.price, platform: t.platform, status: t.status,
+    noticeReason: t.notice_reason || '', contactPhone: t.notice_phone || '',
     bus: { name: t.bus_name, model: t.bus_model, amenities: (t.amenities || '').split(',').filter(Boolean) },
     total: t.total, free: Math.max(0, t.total - t.taken - t.blocked_cnt),
     foreign: t.f_country !== 'UZ' || t.c_country !== 'UZ'
@@ -73,7 +74,8 @@ function getTrip(id) {
 
 const ticketSelect = `
 SELECT k.*, o.phone, o.user_id, o.guest_key, o.created_at AS bought_at, o.status AS order_status, o.total AS order_total,
-  t.depart_at, t.arrive_at, t.platform, t.duration_min,
+  t.depart_at, t.arrive_at, t.platform, t.duration_min, t.status AS trip_status,
+  t.notice_reason, t.notice_phone,
   f.name_uz AS f_uz, f.name_ru AS f_ru, f.name_en AS f_en, f.country AS f_country,
   c.name_uz AS c_uz, c.name_ru AS c_ru, c.name_en AS c_en, c.country AS c_country,
   b.name AS bus_name, b.model AS bus_model
@@ -89,7 +91,8 @@ function ticketOut(k) {
     id: k.id, orderId: k.order_id, number: k.number, seat: k.seat_no, fio: k.fio, gender: k.gender,
     passport: k.passport, birth: k.birth, price: k.price, status: k.status, phone: k.phone,
     boughtAt: k.bought_at, departAt: k.depart_at, arriveAt: k.arrive_at, platform: k.platform,
-    duration: k.duration_min,
+    duration: k.duration_min, tripStatus: k.trip_status, noticeReason: k.notice_reason || '',
+    contactPhone: k.notice_phone || '',
     from: { uz: k.f_uz, ru: k.f_ru, en: k.f_en }, to: { uz: k.c_uz, ru: k.c_ru, en: k.c_en },
     foreign: k.f_country !== 'UZ' || k.c_country !== 'UZ',
     bus: { name: k.bus_name, model: k.bus_model },
@@ -118,22 +121,27 @@ r.get('/cities', (req, res) => {
 r.get('/trips', (req, res) => {
   expireStale();
   const { from, to, date, scope } = req.query;
+  const offsetRaw = req.query.offset;
+  const offset = offsetRaw === undefined ? 0 : Number(offsetRaw);
+  if (offsetRaw !== undefined && (typeof offsetRaw !== 'string' || !/^\d+$/.test(offsetRaw) || !Number.isSafeInteger(offset))) {
+    throw new HttpError(400, 'bad_offset');
+  }
   const now = U.nowLocal();
-  const where = ["t.status = 'active'", 't.depart_at > ?'];
+  const where = ["t.status = 'active'", 't.depart_at > ?', 't.schedule_id IS NULL'];
   const args = [now];
   if (from) { where.push('t.from_id = ?'); args.push(+from); }
   if (to) { where.push('t.to_id = ?'); args.push(+to); }
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) { where.push('t.depart_at LIKE ?'); args.push(date + '%'); }
   if (scope === 'local') where.push("f.country = 'UZ' AND c.country = 'UZ'");
   if (scope === 'foreign') where.push("(f.country != 'UZ' OR c.country != 'UZ')");
-  const rows = db.prepare(TRIP_SQL + ' WHERE ' + where.join(' AND ') + ' ORDER BY t.depart_at LIMIT 100').all(...args);
+  const rows = db.prepare(TRIP_SQL + ' WHERE ' + where.join(' AND ') + ' ORDER BY t.depart_at, t.id LIMIT 100 OFFSET ?').all(...args, offset);
   res.json(rows.map(tripOut));
 });
 
 r.get('/popular', (req, res) => {
   expireStale();
-  const rows = db.prepare(`${TRIP_SQL} WHERE t.status = 'active' AND t.depart_at > ?
-    AND t.id IN (SELECT MIN(id) FROM trips WHERE status = 'active' AND depart_at > ? GROUP BY from_id, to_id)
+  const rows = db.prepare(`${TRIP_SQL} WHERE t.status = 'active' AND t.depart_at > ? AND t.schedule_id IS NULL
+    AND t.id IN (SELECT MIN(id) FROM trips WHERE status = 'active' AND depart_at > ? AND schedule_id IS NULL GROUP BY from_id, to_id)
     ORDER BY (SELECT COUNT(*) FROM tickets k2 JOIN trips t2 ON t2.id = k2.trip_id
       WHERE t2.from_id = t.from_id AND t2.to_id = t.to_id AND k2.status IN ('pending','active')) DESC, t.depart_at
     LIMIT 8`).all(U.nowLocal(), U.nowLocal());
@@ -144,6 +152,7 @@ r.get('/popular', (req, res) => {
 r.get('/trips/:id', (req, res) => {
   expireStale();
   const t = getTrip(+req.params.id);
+  if (t.schedule_id !== null) throw new HttpError(404, 'trip_not_found');
   const mine = String(req.query.hold || '');
   const taken = db.prepare(`SELECT seat_no, gender FROM tickets WHERE trip_id = ? AND status IN ('pending','active')`).all(t.id);
   const blocked = db.prepare('SELECT seat_no FROM blocked WHERE trip_id = ?').all(t.id);
@@ -251,7 +260,7 @@ function orderOut(id) {
   const t = getTrip(o.trip_id);
   return {
     id: o.id, status: o.status, phone: o.phone, amount: o.amount, fee: o.fee, total: o.total,
-    createdAt: o.created_at, paidAt: o.paid_at,
+    paymentMethod: o.payment_method, paymentStarted: !!o.sms_code, createdAt: o.created_at, paidAt: o.paid_at,
     expiresAt: o.created_ms + cfg.HOLD_MS, trip: tripOut(t), tickets
   };
 }
@@ -277,24 +286,47 @@ r.post('/orders/:id/pay', wrap(async (req, res) => {
   if (!U.luhn(number)) throw new HttpError(400, 'bad_card');
   if (!U.validExpiry(expiry)) throw new HttpError(400, 'bad_expiry');
   const result = await payment.start(o, { number, expiry });
-  db.prepare('UPDATE orders SET sms_code = ?, sms_tries = 0 WHERE id = ?').run(result.code || null, o.id);
+  db.prepare("UPDATE orders SET payment_method = 'card', sms_code = ?, sms_tries = 0 WHERE id = ? AND status = 'pending'")
+    .run(result.code || null, o.id);
   res.json({ needSms: !!result.needSms, phone: o.phone, demoCode: cfg.DEMO ? cfg.DEMO_CODE : undefined });
 }));
 
-r.post('/orders/:id/confirm', wrap(async (req, res) => {
-  const o = loadOrder(req);
-  if (o.status !== 'pending') throw new HttpError(409, o.status === 'expired' ? 'hold_expired' : 'order_closed');
-  if (o.sms_tries >= 5) throw new HttpError(429, 'too_many_tries');
-  db.prepare('UPDATE orders SET sms_tries = sms_tries + 1 WHERE id = ?').run(o.id);
-  const ok = await payment.confirm(o, String((req.body && req.body.code) || ''));
-  if (!ok) throw new HttpError(400, 'bad_code');
+function markOrderPaid(orderId, requiredMethod) {
   const tx = db.transaction(() => {
-    db.prepare("UPDATE orders SET status = 'paid', paid_at = ? WHERE id = ?").run(U.nowLocal(), o.id);
-    db.prepare("UPDATE tickets SET status = 'active' WHERE order_id = ? AND status = 'pending'").run(o.id);
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+    if (!order) throw new HttpError(404, 'order_not_found');
+    if (order.status !== 'pending') throw new HttpError(409, order.status === 'expired' ? 'hold_expired' : 'order_closed');
+    if (requiredMethod && order.payment_method !== requiredMethod) throw new HttpError(409, 'payment_method_mismatch');
+    const changed = db.prepare("UPDATE orders SET status = 'paid', paid_at = ? WHERE id = ? AND status = 'pending'")
+      .run(U.nowLocal(), orderId).changes;
+    if (!changed) throw new HttpError(409, 'order_closed');
+    db.prepare("UPDATE tickets SET status = 'active' WHERE order_id = ? AND status = 'pending'").run(orderId);
+    return order;
   });
-  tx();
-  const out = orderOut(o.id);
-  notify(o, 'paid', out.trip.from.uz + ' → ' + out.trip.to.uz + ' | ' + out.trip.departAt + ' | ' + out.tickets.map((x) => '#' + x.seat).join(', '));
+  const order = tx();
+  const out = orderOut(orderId);
+  notify(order, 'paid', out.trip.from.uz + ' → ' + out.trip.to.uz + ' | ' + out.trip.departAt + ' | ' + out.tickets.map((x) => '#' + x.seat).join(', '));
+  return out;
+}
+
+r.post('/orders/:id/cash', (req, res) => {
+  const order = loadOrder(req);
+  if (order.status !== 'pending') throw new HttpError(409, order.status === 'expired' ? 'hold_expired' : 'order_closed');
+  if (order.sms_code) throw new HttpError(409, 'payment_method_locked');
+  db.prepare("UPDATE orders SET payment_method = 'cash' WHERE id = ? AND status = 'pending' AND sms_code IS NULL")
+    .run(order.id);
+  res.json(orderOut(order.id));
+});
+
+r.post('/orders/:id/confirm', wrap(async (req, res) => {
+  const order = loadOrder(req);
+  if (order.status !== 'pending') throw new HttpError(409, order.status === 'expired' ? 'hold_expired' : 'order_closed');
+  if (order.payment_method !== 'card') throw new HttpError(409, 'payment_method_mismatch');
+  if (order.sms_tries >= 5) throw new HttpError(429, 'too_many_tries');
+  db.prepare('UPDATE orders SET sms_tries = sms_tries + 1 WHERE id = ?').run(order.id);
+  const ok = await payment.confirm(order, String((req.body && req.body.code) || ''));
+  if (!ok) throw new HttpError(400, 'bad_code');
+  const out = markOrderPaid(order.id, 'card');
   res.json(out);
 }));
 
@@ -316,6 +348,7 @@ r.get('/tickets', (req, res) => {
   let cond;
   const args = [...f.args];
   if (status === 'returned') cond = "k.status = 'returned'";
+  else if (status === 'cancelled') cond = "k.status = 'cancelled' AND t.status = 'cancelled' AND o.status = 'paid'";
   else if (status === 'history') { cond = "k.status = 'active' AND t.depart_at <= ?"; args.push(now); }
   else { cond = "k.status = 'active' AND t.depart_at > ?"; args.push(now); }
   const rows = db.prepare(`${ticketSelect} WHERE ${f.sql} AND ${cond}
@@ -509,4 +542,4 @@ r.get('/notifications', (req, res) => {
   res.json(rows.map((n) => ({ id: n.id, kind: n.title, body: n.body, createdAt: n.created_at })));
 });
 
-module.exports = { router: r, expireStale, TRIP_SQL, tripOut, ticketSelect, ticketOut, cityOut };
+module.exports = { router: r, expireStale, TRIP_SQL, tripOut, ticketSelect, ticketOut, cityOut, markOrderPaid };

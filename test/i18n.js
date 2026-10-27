@@ -26,8 +26,11 @@ for (const src of files) {
 for (const k of used) if (!k.endsWith('.') && !(k in dict.uz)) fail(`kodda ishlatilgan, lekin tarjimasi yo'q: ${k}`);
 
 // 3) dinamik kalitlar
-for (const c of ['active', 'history', 'returned']) for (const s of ['', '_none', '_hint']) if (!dict.uz['tickets.' + c + s] && s) fail('tickets.' + c + s);
-for (const s of ['active', 'past', 'returned']) if (!dict.uz['ticket.st.' + s]) fail('ticket.st.' + s);
+for (const c of ['active', 'history', 'returned', 'cancelled']) for (const s of ['', '_none', '_hint']) if (!dict.uz['tickets.' + c + s] && s) fail('tickets.' + c + s);
+for (const s of ['active', 'past', 'returned', 'cancelled']) if (!dict.uz['ticket.st.' + s]) fail('ticket.st.' + s);
+for (const k of ['ticket.cancelled_notice', 'ticket.changed_notice', 'ticket.contact', 'notif.trip_cancelled', 'notif.trip_rescheduled', 'notif.trip_moved']) {
+  if (!dict.uz[k]) fail(k);
+}
 
 // 4) har bir serverdagi xato kodi uchun xabar bor
 const srv = fs.readFileSync(path.join(__dirname, '..', 'server', 'routes', 'public.js'), 'utf8');

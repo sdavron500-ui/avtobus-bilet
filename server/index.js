@@ -1,12 +1,6 @@
 const express = require('express');
 const path = require('path');
 const cfg = require('./config');
-const { ensureTrips } = require('./db');
-const { seed } = require('./seed');
-
-if (seed()) console.log("Namunaviy shaharlar, avtobuslar va reyslar qo'shildi.");
-ensureTrips(21);
-setInterval(() => ensureTrips(21), 60 * 60 * 1000).unref();
 
 const app = express();
 app.disable('x-powered-by');

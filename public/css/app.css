@@ -77,9 +77,8 @@ button{cursor:pointer}
 .srow{display:grid;grid-template-columns:1fr 44px 1fr 1fr auto;gap:12px;align-items:end}
 .swap{width:44px;height:48px;border-radius:12px;border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;color:var(--brand)}
 .swap:hover{background:#EAF3EE}
-.chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.chip{border:1.5px solid var(--line);background:#fff;border-radius:20px;padding:6px 14px;font-weight:600;font-size:14px}
-.chip:hover,.chip[aria-pressed=true]{border-color:var(--brand);background:#EAF3EE;color:var(--brand)}
+.all-trips-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.all-trips-entry span{color:var(--muted);font-size:14px}
 .sec{padding:40px 0 0}
 .sec h2{font-size:26px;font-weight:800}
 .sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:18px}
@@ -107,6 +106,24 @@ button{cursor:pointer}
 .day b{display:block}
 .day[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}
 .day[aria-pressed=true] small{color:#BFD3CC}
+.all-trips-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.all-trips-head p{margin:0}
+.all-trips-scope{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 18px;border-radius:9px;color:var(--muted);font-weight:700;text-decoration:none}
+.all-trips-scope[aria-current=page]{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.all-trips-total{margin:0 0 16px;color:var(--muted);font-weight:700}
+.board-month{margin:0 0 24px}
+.board-month>h2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px;font-size:24px}
+.board-month>h2 span,.board-day>h3 span{color:var(--muted);font-size:14px;font-weight:600}
+.board-day{margin:0 0 16px;background:#fff;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.board-day>h3{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 18px;background:#EAF3EE;font-size:17px}
+.board-scroll{overflow-x:auto}
+.board-table{width:100%;border-collapse:collapse;text-align:left}
+.board-table th,.board-table td{padding:12px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+.board-table th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+.board-table tr:last-child td{border-bottom:0}
+.board-table td:first-child small{display:block;color:var(--muted);font-size:12px}
+.board-table td:nth-child(2){min-width:190px}
+.board-table td .btn{height:36px}
 .trip{display:grid;grid-template-columns:1.1fr 1.3fr 1fr auto;gap:16px 24px;align-items:center;background:#fff;border-radius:var(--r);padding:18px 22px;box-shadow:var(--shadow);border:2px solid transparent}
 .trip:hover{border-color:var(--lime-d)}
 .tl{display:flex;align-items:center;gap:12px}
@@ -178,6 +195,7 @@ button{cursor:pointer}
 .tk-st{display:inline-block;align-self:flex-start;border-radius:20px;padding:4px 12px;font-weight:700;font-size:13px}
 .tk-st.active{background:var(--ok-bg);color:var(--ok)}
 .tk-st.returned{background:#F6DADA;color:#9A1C1C}
+.tk-st.cancelled{background:#F6DADA;color:#9A1C1C}
 .tk-st.past{background:#EEF2EF;color:var(--muted)}
 .tcard{display:flex;justify-content:space-between;align-items:center;gap:14px;background:#fff;border-radius:var(--r);padding:16px 20px;box-shadow:var(--shadow);text-decoration:none;border:2px solid transparent}
 .tcard:hover{border-color:var(--brand)}
@@ -238,6 +256,9 @@ button{cursor:pointer}
   .top-in{height:58px;gap:10px}
   .top-r{gap:8px}
   .lang{max-width:104px}
+  .all-trips-entry,.all-trips-head{align-items:flex-start;flex-direction:column}
+  .all-trips-entry .btn{width:100%}
+  .board-month>h2{font-size:21px}
   .tabbar{display:grid;grid-template-columns:repeat(3,1fr);position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
   .tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;font-size:12px;font-weight:700;color:var(--muted);text-decoration:none}
   .tabbar a.on{color:var(--brand)}

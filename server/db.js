@@ -2,7 +2,6 @@ const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
 const cfg = require('./config');
-const { nowLocal, addMinutes, addDays } = require('./util');
 
 fs.mkdirSync(cfg.DATA_DIR, { recursive: true });
 const db = new Database(path.join(cfg.DATA_DIR, process.env.DB_FILE || 'app.db'));
@@ -69,7 +68,7 @@ CREATE TABLE IF NOT EXISTS orders (
   trip_id INTEGER NOT NULL REFERENCES trips(id),
   phone TEXT NOT NULL,
   amount INTEGER NOT NULL, fee INTEGER NOT NULL, total INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
+  status TEXT NOT NULL DEFAULT 'pending', payment_method TEXT NOT NULL DEFAULT 'card',
   sms_code TEXT, sms_tries INTEGER NOT NULL DEFAULT 0,
   created_ms INTEGER NOT NULL, created_at TEXT NOT NULL, paid_at TEXT
 );
@@ -96,24 +95,13 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 `);
 
-// Takrorlanuvchi jadvaldan kelgusi kunlar uchun reyslar yaratish
-function ensureTrips(days = 21) {
-  const now = nowLocal();
-  const today = now.slice(0, 10);
-  const schedules = db.prepare('SELECT * FROM schedules WHERE active = 1').all();
-  const ins = db.prepare(`INSERT OR IGNORE INTO trips
-    (schedule_id, from_id, to_id, depart_at, arrive_at, duration_min, price, bus_id, platform)
-    VALUES (?,?,?,?,?,?,?,?,?)`);
-  const tx = db.transaction(() => {
-    for (const s of schedules) {
-      for (let d = 0; d < days; d++) {
-        const dep = addDays(today, d) + ' ' + s.depart_time;
-        if (dep <= now) continue;
-        ins.run(s.id, s.from_id, s.to_id, dep, addMinutes(dep, s.duration_min), s.duration_min, s.price, s.bus_id, s.platform);
-      }
-    }
-  });
-  tx();
+const tripColumns = new Set(db.pragma('table_info(trips)').map((column) => column.name));
+if (!tripColumns.has('notice_reason')) db.exec("ALTER TABLE trips ADD COLUMN notice_reason TEXT NOT NULL DEFAULT ''");
+if (!tripColumns.has('notice_phone')) db.exec("ALTER TABLE trips ADD COLUMN notice_phone TEXT NOT NULL DEFAULT ''");
+
+const orderColumns = new Set(db.pragma('table_info(orders)').map((column) => column.name));
+if (!orderColumns.has('payment_method')) {
+  db.exec("ALTER TABLE orders ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'card'");
 }
 
-module.exports = { db, ensureTrips };
+module.exports = { db };

@@ -41,10 +41,9 @@ route(/^\/$/, async () => {
         <div class="field"><label for="date">${esc(t('home.date'))}</label><input class="inp" type="date" id="date" name="date" min="${today}" value="${today}"></div>
         <button class="btn btn-lime" type="submit">${esc(t('home.search'))}</button>
       </div>
-      <div class="chips">
-        <button type="button" class="chip" data-d="0">${esc(t('today'))}</button>
-        <button type="button" class="chip" data-d="1">${esc(t('tomorrow'))}</button>
-        <button type="button" class="chip" data-d="2">${esc(fmtDay(addDays(today, 2)))}</button>
+      <div class="all-trips-entry">
+        <span>${esc(t('all_trips.teaser'))}</span>
+        <a class="btn btn-ghost sm" href="#/all-trips">${esc(t('all_trips.title'))}</a>
       </div>
       <div class="err" id="sferr" role="alert"></div>
     </form>
@@ -70,12 +69,20 @@ route(/^\/$/, async () => {
 
   const f = q$('#sf'), selFrom = q$('#from'), selTo = q$('#to'), dateEl = q$('#date');
   const fill = () => {
-    if (!S.cities.some((c) => c.id === from && (scope === 'foreign' || c.country === 'UZ'))) from = findCity('Toshkent');
-    if (!S.cities.some((c) => c.id === to && (scope === 'foreign' || c.country === 'UZ')) || to === from) {
-      to = scope === 'foreign' ? (S.cities.find((c) => c.country !== 'UZ') || {}).id : findCity('Samarqand');
+    const available = scope === 'local' ? S.cities.filter((c) => c.country === 'UZ') : S.cities;
+    if (!available.some((c) => c.id === from)) {
+      from = (available.find((c) => c.uz === 'Toshkent') || available[0] || {}).id;
+    }
+    if (!available.some((c) => c.id === to) || to === from) {
+      const preferredTo = scope === 'foreign'
+        ? available.find((c) => c.country !== 'UZ' && c.id !== from)
+        : available.find((c) => c.uz === 'Samarqand' && c.id !== from);
+      to = preferredTo?.id ?? available.find((c) => c.id !== from)?.id;
     }
     selFrom.innerHTML = cityOptions(scope, from);
     selTo.innerHTML = cityOptions(scope, to);
+    if (from !== undefined) selFrom.value = String(from);
+    if (to !== undefined) selTo.value = String(to);
   };
   fill();
   selFrom.addEventListener('change', () => { from = +selFrom.value; });
@@ -94,7 +101,13 @@ route(/^\/$/, async () => {
   });
   f.addEventListener('submit', (e) => {
     e.preventDefault();
+    from = Number(selFrom.value);
+    to = Number(selTo.value);
     if (from === to) { q$('#sferr').textContent = t('err.same_city'); return; }
+    if (!S.cities.some((c) => c.id === from) || !S.cities.some((c) => c.id === to)) {
+      q$('#sferr').textContent = t('err.server_error');
+      return;
+    }
     const date = dateEl.value || today;
     if (date < today) { q$('#sferr').textContent = t('err.past_date'); return; }
     SS.set('last', { from, to });
@@ -113,7 +126,7 @@ route(/^\/search$/, async (_, qs) => {
   if (qs.scope) params.set('scope', qs.scope);
   const trips = await api('GET', '/trips?' + params);
   const fromC = S.cities.find((c) => c.id === +qs.from), toC = S.cities.find((c) => c.id === +qs.to);
-  const title = fromC && toC ? `${cityName(fromC)} → ${cityName(toC)}` : t('search.title');
+  const title = fromC && toC ? `${cityName(fromC)} → ${cityName(toC)}` : `${t('search.title')} · ${fmtDay(date)}`;
   const mkUrl = (d) => `#/search?from=${qs.from || ''}&to=${qs.to || ''}&date=${d}&scope=${qs.scope || 'local'}`;
   const days = Array.from({ length: 10 }, (_, i) => addDays(today, i));
   if (!days.includes(date)) days.unshift(date);
@@ -167,6 +180,68 @@ route(/^\/search$/, async (_, qs) => {
     document.querySelectorAll('[data-sort]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     draw();
   });
+});
+
+/* ================= Barcha reyslar tablosi ================= */
+route(/^\/all-trips$/, async (_, qs, isCurrent) => {
+  const savedScope = SS.get('scope') || 'local';
+  const scope = ['local', 'foreign'].includes(qs.scope) ? qs.scope
+    : ['local', 'foreign'].includes(savedScope) ? savedScope : 'local';
+  const trips = [];
+  let offset = 0;
+  let page;
+  do {
+    page = await api('GET', `/trips?scope=${scope}&offset=${offset}`);
+    trips.push(...page);
+    offset += page.length;
+    if (!isCurrent()) return;
+  } while (page.length === 100);
+
+  const months = new Map();
+  for (const trip of trips) {
+    const date = dateOf(trip.departAt);
+    const month = date.slice(0, 7);
+    if (!months.has(month)) months.set(month, new Map());
+    const days = months.get(month);
+    if (!days.has(date)) days.set(date, []);
+    days.get(date).push(trip);
+  }
+
+  const renderTrip = (trip) => `<tr>
+    <td><b>${timeOf(trip.departAt)}</b><small>${esc(t('all_trips.arrival'))}: ${timeOf(trip.arriveAt)}</small></td>
+    <td><strong>${routeName(trip)}</strong></td>
+    <td>${esc(trip.bus.model || trip.bus.name)}</td>
+    <td>${trip.free} / ${trip.total}</td>
+    <td><b>${esc(money(trip.price))}</b></td>
+    <td><a class="btn btn-lime sm" ${trip.free ? `href="#/trip/${trip.id}"` : 'aria-disabled="true"'}>${esc(t('search.choose'))}</a></td>
+  </tr>`;
+
+  view(`<div class="wrap page">
+    ${pageHead(t('all_trips.title'), '#/')}
+    <div class="all-trips-head">
+      <p class="muted">${esc(t('all_trips.teaser'))}</p>
+      <div class="seg" role="group" aria-label="${esc(t('home.scope'))}">
+        <a class="all-trips-scope" href="#/all-trips?scope=local" aria-current="${scope === 'local' ? 'page' : 'false'}">${esc(t('home.local'))}</a>
+        <a class="all-trips-scope" href="#/all-trips?scope=foreign" aria-current="${scope === 'foreign' ? 'page' : 'false'}">${esc(t('home.foreign'))}</a>
+      </div>
+    </div>
+    ${trips.length ? `<p class="all-trips-total">${esc(t('all_trips.total', { n: trips.length }))}</p>
+      ${[...months].map(([month, days]) => {
+        const monthCount = [...days.values()].reduce((count, dayTrips) => count + dayTrips.length, 0);
+        const monthName = t('mon.' + Number(month.slice(5)));
+        return `<section class="board-month">
+          <h2>${esc(t('all_trips.month', { month: monthName, year: month.slice(0, 4) }))}<span>${esc(t('all_trips.count', { n: monthCount }))}</span></h2>
+          ${[...days].map(([date, dayTrips]) => `<section class="board-day" aria-labelledby="day-${date}">
+            <h3 id="day-${date}">${esc(fmtWeekday(date + ' 00:00'))}, ${esc(fmtDay(date + ' 00:00'))}<span>${esc(t('all_trips.count', { n: dayTrips.length }))}</span></h3>
+            <div class="board-scroll"><table class="board-table">
+              <thead><tr><th>${esc(t('all_trips.departure'))}</th><th>${esc(t('all_trips.route'))}</th><th>${esc(t('all_trips.bus'))}</th><th>${esc(t('all_trips.seats'))}</th><th>${esc(t('all_trips.price'))}</th><th></th></tr></thead>
+              <tbody>${dayTrips.map(renderTrip).join('')}</tbody>
+            </table></div>
+          </section>`).join('')}
+        </section>`;
+      }).join('')}` : `<div class="empty"><h3>${esc(t('all_trips.none'))}</h3><p>${esc(t('all_trips.none_hint'))}</p></div>`}
+  </div>`);
+  SS.set('scope', scope);
 });
 
 /* ================= O'rin tanlash ================= */
@@ -362,12 +437,20 @@ route(/^\/pay\/([a-f0-9]+)$/, async ([id]) => {
     return;
   }
   const trip = order.trip;
+  let method = order.paymentMethod === 'cash' ? 'cash' : 'card';
   view(`<div class="wrap page">
     ${pageHead(t('pay.title'), '')}
     <div class="two">
       <div class="card stack" id="payBox">
-        ${S.config.demo ? `<div class="demo">${esc(t('pay.demo'))}</div>` : ''}
-        <form class="stack" id="cardForm" novalidate>
+        ${S.config.demo ? `<div class="demo" id="cardDemo" ${method === 'cash' ? 'hidden' : ''}>${esc(t('pay.demo'))}</div>` : ''}
+        <div>
+          <div class="lbl">${esc(t('pay.method'))}</div>
+          <div class="seg" id="paymentMethods" role="group" aria-label="${esc(t('pay.method'))}" ${order.paymentStarted ? 'hidden' : ''}>
+            <button type="button" data-method="card" aria-pressed="${method === 'card'}">${esc(t('pay.card_method'))}</button>
+            <button type="button" data-method="cash" aria-pressed="${method === 'cash'}">${esc(t('pay.cash_method'))}</button>
+          </div>
+        </div>
+        <form class="stack" id="cardForm" novalidate ${method === 'cash' || order.paymentStarted ? 'hidden' : ''}>
           <h2 style="font-size:20px">${esc(t('pay.card'))}</h2>
           <div class="field"><label for="cn">${esc(t('pay.card_number'))}</label>
             <input class="inp" id="cn" name="number" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" maxlength="19">
@@ -377,7 +460,7 @@ route(/^\/pay\/([a-f0-9]+)$/, async ([id]) => {
             <div class="err" data-err="expiry" role="alert"></div></div>
           <button class="btn btn-lime block" type="submit">${esc(t('pay.pay'))} ${esc(money(order.total))}</button>
         </form>
-        <form class="stack" id="smsForm" novalidate hidden>
+        <form class="stack" id="smsForm" novalidate ${order.paymentStarted ? '' : 'hidden'}>
           <h2 style="font-size:20px">${esc(t('pay.confirm'))}</h2>
           <p class="muted" style="margin:0">${esc(t('pay.sms_sent', { phone: phoneShow(order.phone) }))}</p>
           ${S.config.demo ? `<div class="demo">${esc(t('pay.demo_code'))}</div>` : ''}
@@ -386,6 +469,17 @@ route(/^\/pay\/([a-f0-9]+)$/, async ([id]) => {
             <div class="err" data-err="code" role="alert"></div></div>
           <button class="btn btn-lime block" type="submit">${esc(t('pay.confirm_btn'))}</button>
         </form>
+        <div class="stack" id="cashBox" ${method === 'cash' ? '' : 'hidden'}>
+          <h2 style="font-size:20px">${esc(t('pay.cash_title'))}</h2>
+          <p class="muted" style="margin:0">${esc(t('pay.cash_hint'))}</p>
+          ${method === 'cash' ? `<div class="note warn"><b>${esc(t('pay.cash_pending'))}</b>
+            <div>${esc(t('pay.cash_order', { id: order.id }))}</div>
+            <div>${esc(t('pay.cash_seats', { seats: order.tickets.map((ticket) => ticket.seat).join(', ') }))}</div>
+            <div>${esc(t('pay.cash_amount', { amount: money(order.total) }))}</div>
+          </div>` : ''}
+          ${method === 'cash' ? `<p class="hint" style="margin:0">${esc(t('pay.cash_expiry', { min: S.config.holdMinutes || 10 }))}</p>` : ''}
+          ${method !== 'cash' ? `<button class="btn btn-lime block" id="chooseCash" type="button">${esc(t('pay.cash_choose'))}</button>` : ''}
+        </div>
       </div>
       <aside class="card sticky"><div class="stack">
         <div class="timer">${esc(t('co.time_left'))}: <span id="cd"></span></div>
@@ -401,6 +495,30 @@ route(/^\/pay\/([a-f0-9]+)$/, async ([id]) => {
 
   countdown(q$('#cd'), order.expiresAt, () => { toast(t('err.hold_expired'), 'err'); go('/trip/' + trip.id); });
   const cf = q$('#cardForm'), sf = q$('#smsForm');
+  const cashBox = q$('#cashBox');
+  q$('#paymentMethods').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-method]');
+    if (!b) return;
+    method = b.dataset.method;
+    q$('#paymentMethods').querySelectorAll('[data-method]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button === b));
+    });
+    cf.hidden = method !== 'card';
+    cashBox.hidden = method !== 'cash';
+    const demoNotice = q$('#cardDemo');
+    if (demoNotice) demoNotice.hidden = method !== 'card';
+  });
+  const cashButton = q$('#chooseCash');
+  if (cashButton) cashButton.addEventListener('click', async () => {
+    cashButton.disabled = true;
+    try {
+      await api('POST', `/orders/${id}/cash`);
+      go('/pay/' + id);
+    } catch (err) {
+      toast(errMsg(err), 'err');
+      cashButton.disabled = false;
+    }
+  });
   cf.number.addEventListener('input', () => { cf.number.value = cf.number.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim(); });
   cf.expiry.addEventListener('input', (e) => {
     let d = cf.expiry.value.replace(/\D/g, '').slice(0, 4);
@@ -414,6 +532,7 @@ route(/^\/pay\/([a-f0-9]+)$/, async ([id]) => {
     const btn = cf.querySelector('button[type=submit]'); btn.disabled = true;
     try {
       await api('POST', `/orders/${id}/pay`, { number: cf.number.value, expiry: cf.expiry.value });
+      q$('#paymentMethods').hidden = true;
       cf.hidden = true; sf.hidden = false; sf.code.focus();
     } catch (err) {
       const field = err.code === 'bad_expiry' ? 'expiry' : 'number';
@@ -458,10 +577,16 @@ route(/^\/done\/([a-f0-9]+)$/, async ([id]) => {
 /* ================= Chipta ================= */
 function ticketCard(k) {
   const past = k.status === 'active' && k.departAt <= new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tashkent' }).slice(0, 16);
-  const st = k.status === 'returned' ? 'returned' : past ? 'past' : 'active';
+  const st = k.status === 'cancelled' ? 'cancelled' : k.status === 'returned' ? 'returned' : past ? 'past' : 'active';
+  const phone = String(k.contactPhone || '').replace(/[^\d+]/g, '');
   return `<article class="tk" aria-label="${esc(t('ticket.title'))}">
     <div class="tk-main">
       <span class="tk-st ${st}">${esc(t('ticket.st.' + st))}</span>
+      ${k.noticeReason ? `<div class="note${k.status === 'cancelled' ? ' warn' : ''}" style="margin:10px 0">
+        <b>${esc(t(k.status === 'cancelled' ? 'ticket.cancelled_notice' : 'ticket.changed_notice'))}</b>
+        <div>${esc(k.noticeReason)}</div>
+        ${k.contactPhone ? `<a class="link" href="tel:${esc(phone)}">${esc(t('ticket.contact'))}: ${esc(k.contactPhone)}</a>` : ''}
+      </div>` : ''}
       <div class="rt">${esc(cityName(k.from))} → ${esc(cityName(k.to))}</div>
       <div class="tk-grid">
         <div><span>${esc(t('departure'))}</span><b>${esc(fmtDay(k.departAt))}, ${timeOf(k.departAt)}</b></div>
@@ -517,16 +642,16 @@ route(/^\/ticket\/([a-f0-9]+)$/, async ([id]) => {
 });
 
 route(/^\/tickets$/, async (_, qs) => {
-  const tab = ['active', 'history', 'returned'].includes(qs.tab) ? qs.tab : 'active';
+  const tab = ['active', 'history', 'returned', 'cancelled'].includes(qs.tab) ? qs.tab : 'active';
   const items = await api('GET', '/tickets?status=' + tab);
-  const tabs = ['active', 'history', 'returned'].map((x) => `<a class="day" style="text-decoration:none;min-width:auto;padding:8px 18px" href="#/tickets?tab=${x}" aria-pressed="${x === tab}"><b>${esc(t('tickets.' + x))}</b></a>`).join('');
+  const tabs = ['active', 'history', 'returned', 'cancelled'].map((x) => `<a class="day" style="text-decoration:none;min-width:auto;padding:8px 18px" href="#/tickets?tab=${x}" aria-pressed="${x === tab}"><b>${esc(t('tickets.' + x))}</b></a>`).join('');
   view(`<div class="wrap page"><div style="max-width:820px;margin:0 auto">
     ${pageHead(t('nav.tickets'), '')}
     <div class="days" role="navigation" aria-label="${esc(t('nav.tickets'))}">${tabs}</div>
     ${!S.user ? `<div class="note" style="margin-bottom:14px">${esc(t('tickets.guest_note'))} <a class="link" href="#/login">${esc(t('auth.login'))}</a> · <a class="link" href="#/restore">${esc(t('profile.restore'))}</a></div>` : ''}
     <div class="stack">${items.length ? items.map((k) => `
       <a class="tcard" href="#/ticket/${k.id}">
-        <div><div class="rt">${esc(cityName(k.from))} → ${esc(cityName(k.to))}</div>
+        <div><div class="rt">${k.status === 'cancelled' ? `<span class="tk-st cancelled">${esc(t('ticket.st.cancelled'))}</span> ` : ''}${esc(cityName(k.from))} → ${esc(cityName(k.to))}</div>
           <div class="meta">${esc(fmtDay(k.departAt))}, ${timeOf(k.departAt)} · ${esc(t('seat.n', { n: k.seat }))} · ${esc(k.fio)}</div></div>${icon.chev}
       </a>`).join('') : `<div class="empty">${icon.bus}<h3>${esc(t('tickets.' + tab + '_none'))}</h3><p>${esc(t('tickets.' + tab + '_hint'))}</p>${tab === 'active' ? `<a class="btn" href="#/">${esc(t('home.search'))}</a>` : ''}</div>`}
     </div>

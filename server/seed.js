@@ -1,6 +1,5 @@
-// Namunaviy ma'lumotlar: shaharlar, avtobuslar va takrorlanuvchi jadvallar.
-// Bo'sh bazaga avtomatik qo'shiladi. Haqiqiy ma'lumotlarni admin paneldan kiriting.
-const { db, ensureTrips } = require('./db');
+// Ixtiyoriy demo ma'lumotlar. Server ishga tushganda avtomatik qo'shilmaydi.
+const { db } = require('./db');
 
 const CITIES = [
   ['Toshkent', 'Ташкент', 'Tashkent', 'UZ'], ['Samarqand', 'Самарканд', 'Samarkand', 'UZ'],
@@ -59,7 +58,6 @@ function seed() {
     }
   });
   tx();
-  ensureTrips(21);
   return true;
 }
 

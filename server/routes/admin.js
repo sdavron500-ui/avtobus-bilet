@@ -1,9 +1,9 @@
 const express = require('express');
 const crypto = require('crypto');
 const cfg = require('../config');
-const { db, ensureTrips } = require('../db');
+const { db } = require('../db');
 const U = require('../util');
-const { expireStale, TRIP_SQL, tripOut } = require('./public');
+const { expireStale, TRIP_SQL, tripOut, markOrderPaid } = require('./public');
 
 const r = express.Router();
 const { HttpError } = U;
@@ -52,14 +52,16 @@ r.get('/stats', (req, res) => {
   const now = U.nowLocal();
   const one = (sql, ...a) => db.prepare(sql).get(...a).c;
   res.json({
-    upcomingTrips: one("SELECT COUNT(*) c FROM trips WHERE status = 'active' AND depart_at > ?", now),
+    upcomingTrips: one(`SELECT COUNT(*) c FROM trips t WHERE t.status = 'active' AND t.depart_at > ?
+      AND (t.schedule_id IS NULL OR EXISTS (SELECT 1 FROM tickets k WHERE k.trip_id = t.id))`, now),
     activeTickets: one("SELECT COUNT(*) c FROM tickets k JOIN trips t ON t.id = k.trip_id WHERE k.status = 'active' AND t.depart_at > ?", now),
     // Tushum: to'langan summa minus qaytarilgan chipta narxlari (yig'im qaytarilmaydi)
     revenue: db.prepare(`SELECT
       (SELECT COALESCE(SUM(total),0) FROM orders WHERE status IN ('paid','returned')) -
       (SELECT COALESCE(SUM(price),0) FROM tickets WHERE status = 'returned') AS s`).get().s,
     users: one('SELECT COUNT(*) c FROM users'),
-    returned: one("SELECT COUNT(*) c FROM tickets WHERE status = 'returned'")
+    returned: one("SELECT COUNT(*) c FROM tickets WHERE status = 'returned'"),
+    archivedTrips: one("SELECT COUNT(*) c FROM trips WHERE status != 'active' OR depart_at <= ?", now)
   });
 });
 
@@ -99,7 +101,7 @@ r.delete('/buses/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-/* jadvallar (har kuni takrorlanadi) */
+/* Oldingi takrorlanuvchi jadval andozalari */
 r.get('/schedules', (req, res) => {
   res.json(db.prepare(`SELECT s.*, f.name_uz AS f_uz, c.name_uz AS c_uz, b.name AS bus_name FROM schedules s
     JOIN cities f ON f.id = s.from_id JOIN cities c ON c.id = s.to_id JOIN buses b ON b.id = s.bus_id
@@ -112,28 +114,44 @@ r.post('/schedules', (req, res) => {
   const id = db.prepare(`INSERT INTO schedules (from_id,to_id,depart_time,duration_min,price,bus_id,platform)
     VALUES (?,?,?,?,?,?,?)`).run(int(b.from_id, 'city', 1), int(b.to_id, 'city', 1), b.depart_time,
     int(b.duration_min, 'duration', 10), int(b.price, 'price', 1000), int(b.bus_id, 'bus', 1), str(b.platform, 10)).lastInsertRowid;
-  ensureTrips(21);
   res.json({ id });
 });
 r.put('/schedules/:id/active', (req, res) => {
   const on = req.body && req.body.active ? 1 : 0;
   db.prepare('UPDATE schedules SET active = ? WHERE id = ?').run(on, +req.params.id);
-  if (!on) {
-    // Kelajakdagi, hali chipta sotilmagan reyslarni olib tashlash
-    db.prepare(`DELETE FROM trips WHERE schedule_id = ? AND depart_at > ? AND id NOT IN
-      (SELECT trip_id FROM tickets WHERE status IN ('pending','active'))`).run(+req.params.id, U.nowLocal());
-  } else ensureTrips(21);
   res.json({ ok: true });
+});
+r.delete('/schedules/:id', (req, res) => {
+  const id = int(req.params.id, 'schedule', 1);
+  if (!db.prepare('SELECT 1 FROM schedules WHERE id = ?').get(id)) throw new HttpError(404, 'schedule_not_found');
+  const result = db.transaction(() => {
+    const deletedTrips = db.prepare(`DELETE FROM trips WHERE schedule_id = ?
+      AND NOT EXISTS (SELECT 1 FROM tickets WHERE tickets.trip_id = trips.id)`).run(id).changes;
+    const preservedTrips = db.prepare('SELECT COUNT(*) AS c FROM trips WHERE schedule_id = ?').get(id).c;
+    db.prepare('DELETE FROM schedules WHERE id = ?').run(id);
+    return { deletedTrips, preservedTrips };
+  })();
+  res.json(result);
 });
 
 /* reyslar */
 r.get('/trips', (req, res) => {
   expireStale();
   const date = req.query.date;
-  const where = ['t.depart_at > ?'], args = [req.query.past ? '0000-00-00 00:00' : U.nowLocal()];
-  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) { where.push('t.depart_at LIKE ?'); args.push(date + '%'); }
+  const validDate = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date);
+  const archive = req.query.archive === '1';
+  const where = archive ? ["(t.status != 'active' OR t.depart_at <= ?)"] : ["t.status = 'active'"];
+  const args = archive ? [U.nowLocal()] : [];
+  if (!archive) where.push('(t.schedule_id IS NULL OR EXISTS (SELECT 1 FROM tickets k WHERE k.trip_id = t.id))');
+  if (!archive && !validDate) { where.push('t.depart_at > ?'); args.push(U.nowLocal()); }
+  if (validDate) { where.push('t.depart_at LIKE ?'); args.push(date + '%'); }
+  if (req.query.manual === '1') where.push('(t.schedule_id IS NULL OR EXISTS (SELECT 1 FROM tickets k WHERE k.trip_id = t.id))');
   const rows = db.prepare(TRIP_SQL + ' WHERE ' + where.join(' AND ') + ' ORDER BY t.depart_at LIMIT 300').all(...args);
-  res.json(rows.map(tripOut));
+  res.json(rows.map((t) => ({
+    ...tripOut(t),
+    bookedCount: db.prepare(`SELECT COUNT(*) c FROM tickets k JOIN orders o ON o.id = k.order_id
+      WHERE k.trip_id = ? AND k.status IN ('active','cancelled') AND o.status = 'paid'`).get(t.id).c
+  })));
 });
 r.post('/trips', (req, res) => {
   const b = req.body || {};
@@ -148,10 +166,148 @@ r.post('/trips', (req, res) => {
 });
 r.put('/trips/:id', (req, res) => {
   const b = req.body || {};
-  const status = ['active', 'cancelled'].includes(b.status) ? b.status : 'active';
-  db.prepare('UPDATE trips SET price = ?, platform = ?, status = ? WHERE id = ?')
-    .run(int(b.price, 'price', 1000), str(b.platform, 10), status, +req.params.id);
+  const result = db.prepare('UPDATE trips SET price = ?, platform = ? WHERE id = ?')
+    .run(int(b.price, 'price', 1000), str(b.platform, 10), +req.params.id);
+  if (!result.changes) throw new HttpError(404, 'trip_not_found');
   res.json({ ok: true });
+});
+
+function requiredReason(value) {
+  const reason = str(value, 300);
+  if (reason.length < 3) throw new HttpError(400, 'bad_reason');
+  return reason;
+}
+
+function validFutureDateTime(value) {
+  const date = str(value, 16).replace('T', ' ');
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(date)) return null;
+  const parsed = new Date(date.replace(' ', 'T') + ':00Z');
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 16).replace('T', ' ') !== date || date <= U.nowLocal()) return null;
+  return date;
+}
+
+function notifyTripOrders(tripId, title, body) {
+  const orders = db.prepare(`SELECT DISTINCT o.id, o.user_id, o.guest_key FROM orders o
+    JOIN tickets k ON k.order_id = o.id WHERE k.trip_id = ? AND k.status IN ('active','cancelled')
+    AND o.status = 'paid'`).all(tripId);
+  const insert = db.prepare('INSERT INTO notifications (user_id, guest_key, title, body, created_at) VALUES (?,?,?,?,?)');
+  for (const order of orders) insert.run(order.user_id || null, order.guest_key || null, title, body, U.nowLocal());
+}
+
+r.put('/trips/:id/reschedule', (req, res) => {
+  const id = int(req.params.id, 'trip', 1);
+  const trip = db.prepare(TRIP_SQL + ' WHERE t.id = ?').get(id);
+  if (!trip) throw new HttpError(404, 'trip_not_found');
+  if (trip.status !== 'active') throw new HttpError(409, 'trip_not_active');
+  const departAt = validFutureDateTime(req.body && req.body.depart_at);
+  if (!departAt) throw new HttpError(400, 'bad_time');
+  const reason = requiredReason(req.body && req.body.reason);
+  if (trip.schedule_id && db.prepare('SELECT 1 FROM trips WHERE schedule_id = ? AND depart_at = ? AND id != ?').get(trip.schedule_id, departAt, id))
+    throw new HttpError(409, 'trip_time_exists');
+  const arriveAt = U.addMinutes(departAt, trip.duration_min);
+  const body = `Noqulaylik uchun uzr so'raymiz | ${trip.f_uz} → ${trip.c_uz} | ${trip.depart_at} → ${departAt} | Sabab: ${reason} | Aloqa: ${cfg.CONTACT_PHONE}`;
+  const tx = db.transaction(() => {
+    db.prepare('UPDATE trips SET depart_at = ?, arrive_at = ?, notice_reason = ?, notice_phone = ? WHERE id = ?')
+      .run(departAt, arriveAt, reason, cfg.CONTACT_PHONE, id);
+    notifyTripOrders(id, 'trip_rescheduled', body);
+  });
+  tx();
+  res.json({ ok: true, departAt, arriveAt, notified: db.prepare("SELECT COUNT(*) c FROM tickets WHERE trip_id = ? AND status = 'active'").get(id).c });
+});
+
+r.post('/trips/:id/cancel', (req, res) => {
+  const id = int(req.params.id, 'trip', 1);
+  const trip = db.prepare(TRIP_SQL + ' WHERE t.id = ?').get(id);
+  if (!trip) throw new HttpError(404, 'trip_not_found');
+  if (trip.status !== 'active') throw new HttpError(409, 'trip_not_active');
+  const reason = requiredReason(req.body && req.body.reason);
+  const body = `Noqulaylik uchun uzr so'raymiz | ${trip.f_uz} → ${trip.c_uz} | ${trip.depart_at} | Sabab: ${reason} | Aloqa: ${cfg.CONTACT_PHONE}`;
+  const tx = db.transaction(() => {
+    db.prepare("UPDATE trips SET status = 'cancelled', notice_reason = ?, notice_phone = ? WHERE id = ?")
+      .run(reason, cfg.CONTACT_PHONE, id);
+    db.prepare("UPDATE tickets SET status = 'cancelled', returned_at = ? WHERE trip_id = ? AND status = 'active'")
+      .run(U.nowLocal(), id);
+    db.prepare("UPDATE tickets SET status = 'cancelled', returned_at = ? WHERE trip_id = ? AND status = 'pending'")
+      .run(U.nowLocal(), id);
+    db.prepare("UPDATE orders SET status = 'cancelled' WHERE trip_id = ? AND status = 'pending'").run(id);
+    notifyTripOrders(id, 'trip_cancelled', body);
+  });
+  tx();
+  res.json({ ok: true });
+});
+
+r.delete('/trips/:id', (req, res) => {
+  const id = int(req.params.id, 'trip', 1);
+  const trip = db.prepare('SELECT status FROM trips WHERE id = ?').get(id);
+  if (!trip) throw new HttpError(404, 'trip_not_found');
+  if (trip.status !== 'active') throw new HttpError(409, 'trip_not_active');
+  if (db.prepare('SELECT 1 FROM tickets WHERE trip_id = ? LIMIT 1').get(id)) throw new HttpError(409, 'trip_has_tickets');
+  db.transaction(() => {
+    db.prepare('DELETE FROM holds WHERE trip_id = ?').run(id);
+    db.prepare('DELETE FROM blocked WHERE trip_id = ?').run(id);
+    db.prepare("UPDATE trips SET status = 'archived' WHERE id = ?").run(id);
+  })();
+  res.json({ ok: true });
+});
+
+r.get('/trips/:id/move-options', (req, res) => {
+  const id = int(req.params.id, 'trip', 1);
+  const source = db.prepare(TRIP_SQL + ' WHERE t.id = ?').get(id);
+  if (!source) throw new HttpError(404, 'trip_not_found');
+  if (!['active', 'cancelled'].includes(source.status)) throw new HttpError(409, 'trip_not_active');
+  const orders = db.prepare(`SELECT o.id, o.phone, COUNT(k.id) AS ticket_count,
+      group_concat(k.fio, ', ') AS passengers
+    FROM orders o JOIN tickets k ON k.order_id = o.id
+    WHERE k.trip_id = ? AND k.status IN ('active','cancelled') AND o.status = 'paid'
+    GROUP BY o.id ORDER BY o.created_ms`).all(id);
+  const trips = db.prepare(TRIP_SQL + ` WHERE t.id != ? AND t.from_id = ? AND t.to_id = ?
+    AND t.status = 'active' AND t.depart_at > ? ORDER BY t.depart_at LIMIT 100`)
+    .all(id, source.from_id, source.to_id, U.nowLocal())
+    .map((trip) => {
+      const held = db.prepare('SELECT COUNT(*) c FROM holds WHERE trip_id = ? AND expires_at > ?').get(trip.id, Date.now()).c;
+      return { ...tripOut(trip), free: Math.max(0, tripOut(trip).free - held) };
+    })
+    .filter((trip) => trip.free > 0);
+  res.json({ orders, trips });
+});
+
+r.post('/orders/:id/move', (req, res) => {
+  const orderId = str(req.params.id, 32);
+  const toTripId = int(req.body && req.body.toTripId, 'trip', 1);
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  if (!order || order.status !== 'paid') throw new HttpError(404, 'order_not_found');
+  const source = db.prepare('SELECT * FROM trips WHERE id = ?').get(order.trip_id);
+  const target = db.prepare('SELECT * FROM trips WHERE id = ?').get(toTripId);
+  if (!source || !target || !['active', 'cancelled'].includes(source.status)) throw new HttpError(404, 'trip_not_found');
+  if (target.status !== 'active' || target.depart_at <= U.nowLocal()) throw new HttpError(409, 'trip_not_active');
+  if (source.from_id !== target.from_id || source.to_id !== target.to_id) throw new HttpError(400, 'route_mismatch');
+  const tickets = db.prepare(`SELECT id, seat_no, status FROM tickets WHERE order_id = ? AND trip_id = ?
+    AND status IN ('active','cancelled') ORDER BY seat_no`).all(orderId, source.id);
+  if (!tickets.length) throw new HttpError(400, 'nothing_to_move');
+  const tx = db.transaction(() => {
+    const bus = db.prepare('SELECT seats FROM buses WHERE id = ?').get(target.bus_id);
+    const occupied = new Set(db.prepare(`SELECT seat_no FROM tickets WHERE trip_id = ? AND status IN ('active','pending')
+      UNION SELECT seat_no FROM blocked WHERE trip_id = ?
+      UNION SELECT seat_no FROM holds WHERE trip_id = ? AND expires_at > ?`)
+      .all(target.id, target.id, target.id, Date.now()).map((seat) => seat.seat_no));
+    const freeSeats = [];
+    for (let seat = 1; seat <= bus.seats && freeSeats.length < tickets.length; seat++) {
+      if (!occupied.has(seat)) freeSeats.push(seat);
+    }
+    if (freeSeats.length !== tickets.length) throw new HttpError(409, 'not_enough_seats');
+    const update = db.prepare("UPDATE tickets SET trip_id = ?, seat_no = ?, status = 'active', returned_at = NULL WHERE id = ?");
+    tickets.forEach((ticket, index) => update.run(target.id, freeSeats[index], ticket.id));
+    db.prepare('UPDATE orders SET trip_id = ? WHERE id = ?').run(target.id, orderId);
+    const to = db.prepare('SELECT depart_at FROM trips WHERE id = ?').get(target.id);
+    const route = db.prepare(`SELECT f.name_uz AS from_name, c.name_uz AS to_name FROM trips t
+      JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id WHERE t.id = ?`).get(target.id);
+    const body = `${route.from_name} → ${route.to_name} | ${to.depart_at} | Yangi reysga ko'chirildi. Narx farqini kelishish uchun aloqa: ${cfg.CONTACT_PHONE}`;
+    db.prepare('INSERT INTO notifications (user_id, guest_key, title, body, created_at) VALUES (?,?,?,?,?)')
+      .run(order.user_id || null, order.guest_key || null, 'trip_moved', body, U.nowLocal());
+    return freeSeats;
+  });
+  const seats = tx();
+  res.json({ ok: true, moved: tickets.length, seats, tripId: target.id });
 });
 
 /* reys o'rinlari: kim o'tirgan, qaysi o'rin bloklangan */
@@ -193,13 +349,18 @@ r.delete('/trips/:id/block/:seat', (req, res) => {
 
 /* buyurtmalar va chipta tekshirish */
 r.get('/orders', (req, res) => {
-  const rows = db.prepare(`SELECT o.id, o.phone, o.total, o.status, o.created_at,
+  expireStale();
+  const rows = db.prepare(`SELECT o.id, o.phone, o.total, o.status, o.payment_method, o.created_at,
       t.depart_at, f.name_uz AS f_uz, c.name_uz AS c_uz,
       (SELECT group_concat(seat_no) FROM tickets k WHERE k.order_id = o.id) AS seats
     FROM orders o JOIN trips t ON t.id = o.trip_id
     JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id
     ORDER BY o.created_ms DESC LIMIT 150`).all();
   res.json(rows);
+});
+r.post('/orders/:id/cash/confirm', (req, res) => {
+  expireStale();
+  res.json(markOrderPaid(String(req.params.id), 'cash'));
 });
 r.get('/ticket/:number', (req, res) => {
   const number = String(req.params.number).replace(/^TICKET:/i, '').replace(/\D/g, '');

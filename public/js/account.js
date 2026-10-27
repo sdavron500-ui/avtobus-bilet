@@ -235,6 +235,13 @@ route(/^\/notifications$/, async () => {
     if (n.kind === 'returned') {
       return `<div class="notif"><div class="ic ret">${icon.bell}</div><div><b>${esc(t('notif.returned'))}</b><div class="muted">${esc(t('notif.returned_body', { n: parts[0], sum: money(Number(parts[1] || 0)) }))}</div><div class="hint">${esc(fmtDay(n.createdAt))}, ${timeOf(n.createdAt)}</div></div></div>`;
     }
+    if (['trip_cancelled', 'trip_rescheduled', 'trip_moved'].includes(n.kind)) {
+      const phone = n.body.match(/Aloqa(?:\s+uchun)?\s*:\s*(\+\d[\d\s()-]+)/i);
+      const body = phone ? n.body.replace(phone[0], '').trim() : n.body;
+      return `<div class="notif"><div class="ic ret">${icon.bell}</div><div><b>${esc(t('notif.' + n.kind))}</b><div class="muted">${esc(body)}</div>
+        ${phone ? `<a class="link" href="tel:${esc(phone[1].replace(/[^\d+]/g, ''))}">${esc(t('ticket.contact'))}: ${esc(phone[1].trim())}</a>` : ''}
+        <div class="hint">${esc(fmtDay(n.createdAt))}, ${timeOf(n.createdAt)}</div></div></div>`;
+    }
     return `<div class="notif"><div class="ic">${icon.bell}</div><div><b>${esc(t('notif.paid'))}</b><div class="muted">${esc(parts.join(' · '))}</div><div class="hint">${esc(fmtDay(n.createdAt))}, ${timeOf(n.createdAt)}</div></div></div>`;
   };
   view(`<div class="wrap page"><div class="narrow" style="max-width:640px">
