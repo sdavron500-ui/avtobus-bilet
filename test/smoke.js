@@ -18,6 +18,7 @@ seed();
 const fixtureCities = db.prepare('SELECT id, name_uz, country FROM cities').all();
 const fixtureFrom = fixtureCities.find((city) => city.name_uz === 'Toshkent').id;
 const fixtureTo = fixtureCities.find((city) => city.name_uz === 'Samarqand').id;
+const fixtureForeign = fixtureCities.find((city) => city.country !== 'UZ').id;
 const fixtureSchedules = db.prepare('SELECT * FROM schedules WHERE from_id = ? AND to_id = ?').all(fixtureFrom, fixtureTo);
 const allFixtureSchedules = db.prepare('SELECT * FROM schedules').all();
 const addFixtureTrip = db.prepare(`INSERT INTO trips
@@ -186,12 +187,84 @@ async function api(method, url, body, headers = {}) {
 
   // 10) admin
   ok('admin tokensiz rad etiladi', (await api('GET', '/api/admin/stats')).status === 401);
+  ok('admin hisobotiga tokensiz kirib bo‘lmaydi', (await api('GET', '/api/admin/reports/buses')).status === 401);
+  ok('admin kassadagi sotuviga tokensiz kirib bo‘lmaydi',
+    (await api('POST', `/api/admin/trips/${trip.id}/sales`, {
+      seat: 39, fio: 'Olim Valiyev', gender: 'm', phone: '901112299', paymentMethod: 'cash'
+    })).status === 401);
   ok('naqd to\'lovni admin tasdig\'isiz qabul qilib bo\'lmaydi',
     (await api('POST', `/api/admin/orders/${cashOrderId}/cash/confirm`)).status === 401);
   ok('admin noto\'g\'ri parol', (await api('POST', '/api/admin/login', { password: 'nope' })).status === 401);
   const al = await api('POST', '/api/admin/login', { password: 'test-admin' });
   const A = { 'x-admin': al.data.token };
   ok('admin kirdi', al.status === 200);
+  const saleConfig = await api('GET', '/api/admin/sales-config', null, A);
+  ok('kassadagi sotuvning xizmat haqi va karta demo holati API orqali beriladi',
+    saleConfig.status === 200 && saleConfig.data.feePercent === 2 && saleConfig.data.demoCardPayments === true);
+  const outboundReportTrip = await api('POST', '/api/admin/trips', {
+    from_id: tosh, to_id: sam, depart_at: '2099-03-01T10:00', duration_min: 240, price: 100000, bus_id: 1
+  }, A);
+  const returnReportTrip = await api('POST', '/api/admin/trips', {
+    from_id: sam, to_id: tosh, depart_at: '2099-03-01T15:00', duration_min: 240, price: 120000, bus_id: 1
+  }, A);
+  const outboundSale = await api('POST', `/api/admin/trips/${outboundReportTrip.data.id}/sales`, {
+    seat: 25, fio: 'Olim Valiyev', gender: 'm', phone: '901112233', paymentMethod: 'cash'
+  }, A);
+  const returnSale = await api('POST', `/api/admin/trips/${returnReportTrip.data.id}/sales`, {
+    seat: 26, fio: 'Madina Valiyeva', gender: 'f', phone: '901112244', paymentMethod: 'card'
+  }, A);
+  ok('admin naqd to‘lov bilan mijozni reysga joylashtiradi',
+    outboundSale.status === 200 && outboundSale.data.status === 'paid' && outboundSale.data.paymentMethod === 'cash' &&
+    /^\d{10}$/.test(outboundSale.data.ticketNumber));
+  ok('admin karta to‘lovini va chipta raqamini qayd etadi',
+    returnSale.status === 200 && returnSale.data.status === 'paid' && returnSale.data.paymentMethod === 'card' &&
+    /^\d{10}$/.test(returnSale.data.ticketNumber));
+  ok('band o‘ringa ikkinchi yo‘lovchini joylashtirib bo‘lmaydi',
+    (await api('POST', `/api/admin/trips/${outboundReportTrip.data.id}/sales`, {
+      seat: 25, fio: 'Ali Valiyev', gender: 'm', phone: '901112255', paymentMethod: 'cash'
+    }, A)).status === 409);
+  const busReport = await api('GET', '/api/admin/reports/buses?from=2099-03-01&to=2099-03-01', null, A);
+  const reportBus = busReport.data.buses.find((bus) => bus.id === 1);
+  const outboundReport = reportBus && reportBus.trips.find((trip) => trip.id === outboundReportTrip.data.id);
+  const returnReport = reportBus && reportBus.trips.find((trip) => trip.id === returnReportTrip.data.id);
+  ok('hisobotda bir avtobusning teskari yo‘nalishdagi reyslari borib-qaytish sifatida bog‘lanadi',
+    busReport.status === 200 && reportBus.roundTrips === 1 && reportBus.averageOccupancy === 2.5 &&
+    outboundReport.pairedTripId === returnReportTrip.data.id &&
+    returnReport.isReturn && returnReport.pairedTripId === outboundReportTrip.data.id);
+  const outboundPassengers = await api('GET',
+    `/api/admin/reports/trips/${outboundReportTrip.data.id}/passengers`, null, A);
+  ok('hisobotdagi yo‘lovchi/o‘rin soni bosilganda ism, telefon, jins va o‘rni beriladi',
+    outboundPassengers.status === 200 && outboundPassengers.data.passengers.length === 1 &&
+    outboundPassengers.data.passengers[0].seat === 25 &&
+    outboundPassengers.data.passengers[0].fio === 'Olim Valiyev' &&
+    outboundPassengers.data.passengers[0].gender === 'm' &&
+    outboundPassengers.data.passengers[0].phone ===
+      db.prepare('SELECT phone FROM orders WHERE id = ?').get(outboundSale.data.orderId).phone);
+  ok('yo‘lovchi tafsilotlari avtorizatsiyasiz berilmaydi',
+    (await api('GET', `/api/admin/reports/trips/${outboundReportTrip.data.id}/passengers`)).status === 401);
+  ok('mavjud bo‘lmagan reys yo‘lovchilari so‘rovi rad etiladi',
+    (await api('GET', '/api/admin/reports/trips/999999/passengers', null, A)).status === 404);
+  ok('hisobot javobida eng ko‘p va eng kam qatnovlar ro‘yxati yo‘q',
+    !Object.prototype.hasOwnProperty.call(busReport.data, 'rankings'));
+  ok('reys hisoboti yo‘lovchi, bo‘sh o‘rin va tasdiqlangan tushumni ko‘rsatadi',
+    outboundReport.passengers === 1 && outboundReport.freeSeats === 39 && outboundReport.revenue === 102000 &&
+    outboundReport.cashRevenue === 102000 && returnReport.cardRevenue === 122400);
+  ok('hisobotdagi noto‘g‘ri sana oralig‘i rad etiladi',
+    (await api('GET', '/api/admin/reports/buses?from=2099-03-02&to=2099-03-01', null, A)).status === 400);
+  ok('hisobotdagi mavjud bo‘lmagan sana rad etiladi',
+    (await api('GET', '/api/admin/reports/buses?from=2099-02-31', null, A)).status === 400);
+  const foreignSaleTrip = await api('POST', '/api/admin/trips', {
+    from_id: tosh, to_id: fixtureForeign, depart_at: '2099-03-03T10:00', duration_min: 300, price: 100000, bus_id: 1
+  }, A);
+  const foreignSaleInput = { seat: 27, fio: 'Olim Valiyev', gender: 'm', phone: '901112266', paymentMethod: 'cash' };
+  ok('xalqaro kassadagi sotuv pasportsiz rad etiladi',
+    (await api('POST', `/api/admin/trips/${foreignSaleTrip.data.id}/sales`, foreignSaleInput, A)).status === 400);
+  const foreignSale = await api('POST', `/api/admin/trips/${foreignSaleTrip.data.id}/sales`, {
+    ...foreignSaleInput, passport: 'AA1234567', birth: '2000-01-01'
+  }, A);
+  ok('xalqaro kassadagi sotuv pasport va tug‘ilgan sanani saqlaydi',
+    foreignSale.status === 200 && db.prepare('SELECT passport, birth FROM tickets WHERE number = ?')
+      .get(foreignSale.data.ticketNumber).passport === 'AA1234567');
   const cashAdminOrders = (await api('GET', '/api/admin/orders', null, A)).data;
   const cashRow = cashAdminOrders.find((order) => order.id === cashOrderId);
   ok('admin buyurtmalarida kassada kutayotgan naqd buyurtma ko\'rinadi',

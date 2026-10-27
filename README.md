@@ -51,6 +51,9 @@ Sozlamalar uchun `.env.example` ni `.env` ga nusxalab, kerakli qiymatlarni o'zga
 - Reyslar: reyslar avtomatik yaratilmaydi; admin har bir jo'nashni alohida kiritadi. "Jadvallar" ertangi tayyor avtobuslar va bugungi reyslar ro'yxatini ko'rsatadi
 - Avtobuslar (o'rinlar soni, qulayliklar), shaharlar, buyurtmalar
 - Buyurtmalar bo'limida mijozning naqd buyurtmasini topish va pulni olgach "Naqd pul olindi" orqali tasdiqlash
+- "Sotuv" bo'limida reys/o'rin tanlab, yo'lovchi ma'lumotini kiritish va terminalda yoki kassada qabul qilingan to'lovni karta/naqd deb qayd etib chiptani chiqarish. Xalqaro reysda pasport va tug'ilgan sana talab qilinadi.
+- "Hisobot" bo'limida har bir avtobus uchun reys, yo'lovchi, bo'sh o'rin, bandlik va qayd etilgan tushumni ko'rish; yo'lovchi/jami o'rin sonini bosib, joy raqami, ism-familiya, telefon va jinsni ochish mumkin. Borib-qaytish bir xil avtobus teskari yo'nalishda qaytishi va borish reysi yetib kelgandan keyin jo'nashiga qarab bog'lanadi. Hisobotni Excel ochadigan CSV sifatida yuklab olish yoki chop etish mumkin. Karta to'lovi DEMO paytida hisobot ogohlantiradi.
+- Admin sahifasidagi tanlov orqali o'zbek, rus va ingliz tillarini almashtirish
 - Chipta tekshirish: nazoratchi chipta raqamini kiritib, chipta yaroqli ekanini ko'radi
 
 ## Bitta HTML fayl (demo)

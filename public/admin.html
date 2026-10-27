@@ -12,7 +12,7 @@
 <body class="adm">
 <div id="login" class="lg" hidden>
   <form class="card stack" id="lf" style="width:min(92vw,380px)">
-    <h1 style="font-size:24px">Admin panel</h1>
+    <div class="login-heading"><h1>Admin panel</h1><select class="language-switch" id="loginLang" data-admin-lang aria-label="Til / Язык / Language" title="Til / Язык / Language"><option value="uz">UZ</option><option value="ru">RU</option><option value="en">EN</option></select></div>
     <div class="field"><label for="ap">Parol</label><input class="inp" id="ap" type="password" autocomplete="current-password"></div>
     <div class="err" id="le" role="alert"></div>
     <button class="btn btn-lime block" type="submit">Kirish</button>
@@ -21,7 +21,7 @@
 
 <div id="shell" class="shell" hidden>
   <aside class="side">
-    <div class="brand-a"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#C8F135"/><path d="M7 20V11a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v9z" fill="none" stroke="#0B3B31" stroke-width="2"/><path d="M7 15h18" stroke="#0B3B31" stroke-width="2"/><circle cx="11.5" cy="22" r="1.8" fill="#0B3B31"/><circle cx="20.5" cy="22" r="1.8" fill="#0B3B31"/></svg><span>Admin</span></div>
+    <div class="brand-a"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#C8F135"/><path d="M7 20V11a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v9z" fill="none" stroke="#0B3B31" stroke-width="2"/><path d="M7 15h18" stroke="#0B3B31" stroke-width="2"/><circle cx="11.5" cy="22" r="1.8" fill="#0B3B31"/><circle cx="20.5" cy="22" r="1.8" fill="#0B3B31"/></svg><span>Admin</span><select class="language-switch" id="shellLang" data-admin-lang aria-label="Til / Язык / Language" title="Til / Язык / Language"><option value="uz">UZ</option><option value="ru">RU</option><option value="en">EN</option></select></div>
     <nav id="tabs" aria-label="Bo'limlar"></nav>
     <div class="side-b"><a href="/" target="_blank">Saytni ochish</a><button id="out" type="button">Chiqish</button></div>
   </aside>

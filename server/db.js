@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS trips (
   UNIQUE(schedule_id, depart_at)
 );
 CREATE INDEX IF NOT EXISTS idx_trips_search ON trips(from_id, to_id, depart_at);
+CREATE INDEX IF NOT EXISTS idx_trips_bus_depart ON trips(bus_id, depart_at);
 CREATE TABLE IF NOT EXISTS blocked (
   trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
   seat_no INTEGER NOT NULL, reason TEXT DEFAULT '',
@@ -72,6 +73,7 @@ CREATE TABLE IF NOT EXISTS orders (
   sms_code TEXT, sms_tries INTEGER NOT NULL DEFAULT 0,
   created_ms INTEGER NOT NULL, created_at TEXT NOT NULL, paid_at TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_orders_trip_status ON orders(trip_id, status);
 CREATE TABLE IF NOT EXISTS tickets (
   id TEXT PRIMARY KEY,
   order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -83,6 +85,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   status TEXT NOT NULL DEFAULT 'pending',
   returned_at TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_tickets_trip_status ON tickets(trip_id, status);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_ticket_seat ON tickets(trip_id, seat_no) WHERE status IN ('pending','active');
 CREATE TABLE IF NOT EXISTS codes (
   kind TEXT NOT NULL, key TEXT NOT NULL, code TEXT NOT NULL, expires_at INTEGER NOT NULL,

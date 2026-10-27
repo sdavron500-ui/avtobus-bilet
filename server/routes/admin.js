@@ -65,6 +65,123 @@ r.get('/stats', (req, res) => {
   });
 });
 
+r.get('/sales-config', (req, res) => {
+  res.json({ feePercent: cfg.FEE_PERCENT, demoCardPayments: cfg.DEMO });
+});
+
+r.get('/reports/buses', (req, res) => {
+  expireStale();
+  if ((req.query.from !== undefined && typeof req.query.from !== 'string') ||
+      (req.query.to !== undefined && typeof req.query.to !== 'string'))
+    throw new HttpError(400, 'bad_date');
+  const from = req.query.from || '';
+  const to = req.query.to || '';
+  const validDate = (value) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const timestamp = Date.parse(value + 'T00:00:00Z');
+    return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value;
+  };
+  if ((from && !validDate(from)) || (to && !validDate(to)))
+    throw new HttpError(400, 'bad_date');
+  if (from && to && from > to) throw new HttpError(400, 'bad_date');
+
+  const where = ["t.status != 'archived'"];
+  const args = [];
+  if (from) { where.push('t.depart_at >= ?'); args.push(from + ' 00:00'); }
+  if (to) { where.push('t.depart_at <= ?'); args.push(to + ' 23:59'); }
+  const rows = db.prepare(`SELECT t.id, t.bus_id, t.from_id, t.to_id, t.depart_at, t.arrive_at, t.price, t.status,
+      b.name AS bus_name, b.model AS bus_model, b.plate AS bus_plate, b.seats AS total,
+      f.name_uz AS from_uz, f.name_ru AS from_ru, f.name_en AS from_en,
+      c.name_uz AS to_uz, c.name_ru AS to_ru, c.name_en AS to_en,
+      (SELECT COUNT(*) FROM tickets k JOIN orders o ON o.id = k.order_id
+        WHERE k.trip_id = t.id AND k.status = 'active' AND o.status IN ('paid','returned')) AS passengers,
+      (SELECT COUNT(*) FROM tickets k WHERE k.trip_id = t.id AND k.status IN ('pending','active')) AS occupied,
+      (SELECT COUNT(*) FROM blocked x WHERE x.trip_id = t.id) AS blocked,
+      (SELECT COALESCE(SUM(o.amount + o.fee), 0) FROM orders o
+        WHERE o.trip_id = t.id AND o.status IN ('paid','returned')) -
+      (SELECT COALESCE(SUM(k.price), 0) FROM tickets k JOIN orders o ON o.id = k.order_id
+        WHERE k.trip_id = t.id AND k.status = 'returned' AND o.status IN ('paid','returned')) AS revenue,
+      (SELECT COALESCE(SUM(o.amount + o.fee), 0) FROM orders o
+        WHERE o.trip_id = t.id AND o.payment_method = 'cash' AND o.status IN ('paid','returned')) -
+      (SELECT COALESCE(SUM(k.price), 0) FROM tickets k JOIN orders o ON o.id = k.order_id
+        WHERE k.trip_id = t.id AND k.status = 'returned' AND o.payment_method = 'cash'
+          AND o.status IN ('paid','returned')) AS cash_revenue,
+      (SELECT COALESCE(SUM(o.amount + o.fee), 0) FROM orders o
+        WHERE o.trip_id = t.id AND o.payment_method = 'card' AND o.status IN ('paid','returned')) -
+      (SELECT COALESCE(SUM(k.price), 0) FROM tickets k JOIN orders o ON o.id = k.order_id
+        WHERE k.trip_id = t.id AND k.status = 'returned' AND o.payment_method = 'card'
+          AND o.status IN ('paid','returned')) AS card_revenue
+    FROM trips t JOIN buses b ON b.id = t.bus_id
+    JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id
+    WHERE ${where.join(' AND ')} ORDER BY b.id, t.depart_at, t.id`).all(...args);
+  const byBus = new Map();
+  for (const row of rows) {
+    const trip = {
+      id: row.id, fromId: row.from_id, toId: row.to_id, from: { uz: row.from_uz, ru: row.from_ru, en: row.from_en },
+      to: { uz: row.to_uz, ru: row.to_ru, en: row.to_en }, departAt: row.depart_at, arriveAt: row.arrive_at,
+      status: row.status, passengers: row.passengers, totalSeats: row.total,
+      freeSeats: Math.max(0, row.total - row.occupied - row.blocked),
+      occupancy: row.total ? Math.round(row.passengers * 1000 / row.total) / 10 : 0,
+      revenue: row.revenue, cashRevenue: row.cash_revenue, cardRevenue: row.card_revenue,
+      isReturn: false, pairedTripId: null
+    };
+    if (!byBus.has(row.bus_id)) {
+      byBus.set(row.bus_id, {
+        id: row.bus_id, name: row.bus_name, model: row.bus_model, plate: row.bus_plate, seats: row.total,
+        trips: [], roundTrips: 0, passengers: 0, revenue: 0
+      });
+    }
+    const bus = byBus.get(row.bus_id);
+    bus.trips.push(trip);
+    bus.passengers += trip.passengers;
+    bus.revenue += trip.revenue;
+  }
+
+  const buses = Array.from(byBus.values());
+  for (const bus of buses) {
+    for (let i = 0; i < bus.trips.length; i++) {
+      const outbound = bus.trips[i];
+      if (outbound.pairedTripId) continue;
+      const inbound = bus.trips.slice(i + 1).find((candidate) =>
+        !candidate.pairedTripId && candidate.fromId === outbound.toId && candidate.toId === outbound.fromId &&
+        candidate.departAt >= outbound.arriveAt
+      );
+      if (!inbound) continue;
+      outbound.pairedTripId = inbound.id;
+      inbound.pairedTripId = outbound.id;
+      inbound.isReturn = true;
+      bus.roundTrips++;
+    }
+    bus.tripCount = bus.trips.length;
+    bus.outboundCount = bus.trips.filter((trip) => !trip.isReturn).length;
+    bus.returnCount = bus.trips.filter((trip) => trip.isReturn).length;
+    bus.averageOccupancy = bus.trips.length
+      ? Math.round(bus.trips.reduce((sum, trip) => sum + trip.occupancy, 0) / bus.trips.length * 10) / 10
+      : 0;
+  }
+  buses.sort((a, b) => b.revenue - a.revenue || b.tripCount - a.tripCount || a.name.localeCompare(b.name));
+
+  res.json({
+    buses,
+    totals: {
+      buses: buses.length, trips: rows.length, roundTrips: buses.reduce((sum, bus) => sum + bus.roundTrips, 0),
+      passengers: buses.reduce((sum, bus) => sum + bus.passengers, 0),
+      revenue: buses.reduce((sum, bus) => sum + bus.revenue, 0)
+    },
+    demoCardPayments: cfg.DEMO
+  });
+});
+
+r.get('/reports/trips/:id/passengers', (req, res) => {
+  const tripId = int(req.params.id, 'trip', 1);
+  if (!db.prepare('SELECT 1 FROM trips WHERE id = ?').get(tripId)) throw new HttpError(404, 'trip_not_found');
+  const passengers = db.prepare(`SELECT k.seat_no AS seat, k.fio, k.gender, o.phone
+    FROM tickets k JOIN orders o ON o.id = k.order_id
+    WHERE k.trip_id = ? AND k.status = 'active' AND o.status IN ('paid','returned')
+    ORDER BY k.seat_no`).all(tripId);
+  res.json({ passengers });
+});
+
 /* shaharlar */
 r.get('/cities', (req, res) => res.json(db.prepare('SELECT * FROM cities ORDER BY id').all()));
 r.post('/cities', (req, res) => {
@@ -347,11 +464,68 @@ r.delete('/trips/:id/block/:seat', (req, res) => {
   res.json({ ok: true });
 });
 
+r.post('/trips/:id/sales', (req, res) => {
+  expireStale();
+  const tripId = int(req.params.id, 'trip', 1);
+  const body = req.body || {};
+  const trip = db.prepare(`${TRIP_SQL} WHERE t.id = ?`).get(tripId);
+  if (!trip) throw new HttpError(404, 'trip_not_found');
+  if (trip.status !== 'active' || trip.depart_at <= U.nowLocal()) throw new HttpError(409, 'trip_not_active');
+  const seat = int(body.seat, 'seat', 1);
+  if (seat > trip.total) throw new HttpError(400, 'bad_seat');
+  const fio = str(body.fio, 60).replace(/\s+/g, ' ');
+  if (!/^[\p{L}][\p{L}\s'’`.-]{1,59}$/u.test(fio)) throw new HttpError(400, 'bad_fio');
+  const gender = body.gender === 'f' ? 'f' : body.gender === 'm' ? 'm' : null;
+  if (!gender) throw new HttpError(400, 'bad_gender');
+  const phone = U.normPhone(body.phone);
+  if (!phone) throw new HttpError(400, 'bad_phone');
+  const foreign = trip.f_country !== 'UZ' || trip.c_country !== 'UZ';
+  const passport = str(body.passport, 20).toUpperCase().replace(/\s/g, '');
+  const birth = str(body.birth, 10);
+  if (foreign && !/^[A-Z]{2}\d{7}$/.test(passport)) throw new HttpError(400, 'bad_passport');
+  if (foreign && (!/^\d{4}-\d{2}-\d{2}$/.test(birth) || isNaN(Date.parse(birth)) ||
+      new Date(birth).toISOString().slice(0, 10) !== birth || birth > U.nowLocal().slice(0, 10)))
+    throw new HttpError(400, 'bad_birth');
+  const paymentMethod = body.paymentMethod;
+  if (!['cash', 'card'].includes(paymentMethod)) throw new HttpError(400, 'bad_payment_method');
+  if (db.prepare("SELECT 1 FROM tickets WHERE trip_id = ? AND seat_no = ? AND status IN ('pending','active')").get(tripId, seat) ||
+      db.prepare('SELECT 1 FROM blocked WHERE trip_id = ? AND seat_no = ?').get(tripId, seat))
+    throw new HttpError(409, 'seat_taken');
+
+  const orderId = U.rid(6);
+  const amount = trip.price;
+  const fee = Math.round((amount * cfg.FEE_PERCENT) / 100);
+  const now = U.nowLocal();
+  const tx = db.transaction(() => {
+    db.prepare(`INSERT INTO orders
+      (id, trip_id, phone, amount, fee, total, status, payment_method, created_ms, created_at, paid_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?)`)
+      .run(orderId, tripId, phone, amount, fee, amount + fee, paymentMethod, Date.now(), now, now);
+    db.prepare(`INSERT INTO tickets
+      (id, order_id, trip_id, seat_no, fio, gender, passport, birth, price, number, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`)
+      .run(U.rid(8), orderId, tripId, seat, fio, gender, foreign ? passport : '', foreign ? birth : '',
+        amount, U.ticketNumber());
+  });
+  try { tx(); } catch (error) {
+    if (String(error.message).includes('UNIQUE')) throw new HttpError(409, 'seat_taken');
+    throw error;
+  }
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  const sold = db.prepare(`SELECT k.number, k.seat_no FROM tickets k WHERE k.order_id = ?`).get(orderId);
+  res.json({
+    orderId, ticketNumber: sold.number, seat, total: order.total, paymentMethod,
+    status: order.status
+  });
+});
+
 /* buyurtmalar va chipta tekshirish */
 r.get('/orders', (req, res) => {
   expireStale();
   const rows = db.prepare(`SELECT o.id, o.phone, o.total, o.status, o.payment_method, o.created_at,
-      t.depart_at, f.name_uz AS f_uz, c.name_uz AS c_uz,
+      t.depart_at,
+      f.name_uz AS f_uz, f.name_ru AS f_ru, f.name_en AS f_en,
+      c.name_uz AS c_uz, c.name_ru AS c_ru, c.name_en AS c_en,
       (SELECT group_concat(seat_no) FROM tickets k WHERE k.order_id = o.id) AS seats
     FROM orders o JOIN trips t ON t.id = o.trip_id
     JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id

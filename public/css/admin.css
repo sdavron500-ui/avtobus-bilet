@@ -3,6 +3,13 @@ body.adm{background:var(--bg)}
 .shell{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
 .side{background:var(--brand);color:#fff;padding:20px 14px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
 .brand-a{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;padding:0 8px}
+.brand-a .language-switch{margin-left:auto}
+.login-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.login-heading h1{font-size:24px;margin:0}
+.language-switch{appearance:none;width:44px;min-width:44px;height:44px;padding:0;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:#fff;color:var(--brand);font-size:12px;font-weight:800;text-align:center;text-align-last:center;cursor:pointer}
+.side .language-switch{background:rgba(255,255,255,.12);color:#fff}
+.language-switch:focus-visible{outline:3px solid #6AA3FF;outline-offset:2px}
+.language-switch option{background:#fff;color:var(--ink)}
 #tabs{display:flex;flex-direction:column;gap:4px}
 #tabs button{border:0;background:none;color:#BFD3CC;text-align:left;padding:11px 14px;border-radius:10px;font-weight:600;font-size:15px}
 #tabs button:hover{background:rgba(255,255,255,.08);color:#fff}
@@ -33,11 +40,34 @@ body.adm{background:var(--bg)}
 .aseat.tf{background:var(--fem);border-color:var(--fem-b);color:#8A1745}
 .aseat.bl{background:repeating-linear-gradient(135deg,#ECEFED 0 6px,#E2E6E4 6px 12px);border-color:#9AA7A1;color:#55645F}
 .aseat.on{outline:3px solid #6AA3FF}
+.bus-report summary{cursor:pointer;line-height:1.8}
+.bus-report .tbl{min-width:980px}
+.report-passenger-count{border:1px solid #BFD8CB;border-radius:999px;background:#EAF3EE;color:var(--brand);padding:6px 12px;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}
+.report-passenger-count:hover,.report-passenger-count[aria-expanded=true]{background:#D8EADF;border-color:#76A28E}
+.report-passenger-count:focus-visible{outline:3px solid #6AA3FF;outline-offset:2px}
+.report-passengers td{padding:0 10px 12px}
+.report-passenger-panel{border:1px solid var(--line);border-radius:12px;background:#F8FAF8;padding:12px}
+.report-passenger-panel .tbl{min-width:520px}
+.report-passenger-panel .tbl td,.report-passenger-panel .tbl th{padding:8px 10px}
+.note.warn{line-height:1.5}
+@media print{
+  body.adm{background:#fff}
+  .side,.no-print,#toasts{display:none!important}
+  .shell{display:block;min-height:0}
+  #main{padding:0;gap:12px}
+  .card,.stat{box-shadow:none;border:1px solid #bbb;break-inside:avoid}
+  details.bus-report:not([open])>*:not(summary){display:block!important}
+  .bus-report summary{list-style:none}
+  .bus-report .scroll{overflow:visible}
+  .bus-report .tbl{min-width:0;font-size:10px}
+  .bus-report .tbl th,.bus-report .tbl td{padding:5px}
+}
 @media (max-width:860px){
   .shell{grid-template-columns:1fr}
   .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}
   #tabs{flex-direction:row;flex-wrap:wrap}
   .side-b{margin:0;flex-direction:row}
+  .brand-a{flex:1 1 100%}
   #main{padding:20px 16px 60px}
   .seatgrid{grid-template-columns:1fr}
 }

@@ -1,10 +1,170 @@
-/* Admin panel (faqat o'zbekcha). Parol: .env dagi ADMIN_PASSWORD */
+/* Admin panel. Parol: .env dagi ADMIN_PASSWORD */
 (function () {
   'use strict';
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var main = $('#main');
   var TOKEN = null;
+  var LANG = 'uz';
   try { TOKEN = sessionStorage.getItem('adm'); } catch (e) { /* ignore */ }
+  try { LANG = localStorage.getItem('adminLang') || 'uz'; } catch (e) { /* ignore */ }
+  if (!['uz', 'ru', 'en'].includes(LANG)) LANG = 'uz';
+  document.documentElement.lang = LANG;
+
+  var TRANSLATIONS = {
+    ru: {
+      "Boshqaruv":"Панель управления","Reyslar":"Рейсы","Jadvallar":"Расписания","Avtobuslar":"Автобусы","Shaharlar":"Города","Buyurtmalar":"Заказы","Chipta tekshirish":"Проверка билета","Sotuv":"Продажа","Hisobot":"Отчёты",
+      "Parol":"Пароль","Kirish":"Войти","Chiqish":"Выйти","Saytni ochish":"Открыть сайт","Til / Язык / Language":"Язык","Sessiya tugadi, qaytadan kiring":"Сеанс истёк. Войдите снова","Parol noto'g'ri":"Неверный пароль","Xatolik":"Ошибка",
+      "Kelgusi reyslar":"Предстоящие рейсы","Faol chiptalar":"Активные билеты","Tushum":"Выручка","Foydalanuvchilar":"Пользователи","Qaytarilgan chiptalar":"Возвращённые билеты","Arxivdagi reyslar":"Рейсы в архиве","Tez boshlash":"Быстрый старт","Yo'nalish":"Маршрут","Jo'nash":"Отправление","Yetib borish":"Прибытие","O'rinlar":"Места","Summa":"Сумма","To'lov usuli":"Способ оплаты","Holat":"Статус","Sana":"Дата","Telefon":"Телефон",
+      "Faol reyslar":"Активные рейсы","Tarix / arxiv":"История / архив","Reyslar tarixi va arxiv":"История рейсов и архив","+ Yagona reys qo'shish":"+ Добавить рейс","Qayerdan":"Откуда","Qayerga":"Куда","Davomiyligi (daq.)":"Длительность (мин.)","Narx (so'm)":"Цена (сум)","Peron":"Платформа","Qo'shish":"Добавить","Saqlash":"Сохранить","O'chirish":"Удалить","Bekor qilish":"Отменить","O'rinlarni ko'rish":"Посмотреть места","Yo'lovchilarni ko'chirish":"Пересадить пассажиров","Yo'lovchilarni boshqa reysga ko'chirish":"Пересадка пассажиров на другой рейс","Yangi reys":"Новый рейс","Ko'chirish":"Пересадить","Eski andoza yo'q":"Старых шаблонов нет","Eski takroriy andozalar":"Старые повторяющиеся шаблоны","Andozani o'chirish":"Удалить шаблон","Reysni arxivga olish":"Архивировать рейс","Reys vaqti":"Время рейса","Sabab":"Причина","Bloklangan":"Заблокировано","Bo'sh":"Свободно","Sotilgan":"Продано","O'rin":"Место","Yo'lovchi":"Пассажир","Ayol":"Женщина","Erkak":"Мужчина","Chipta":"Билет","To'lov kutilmoqda":"Ожидается оплата","Blokni olib tashlash":"Снять блокировку","Bloklash (saytda band bo'ladi)":"Заблокировать (будет занято на сайте)","Kassada sotildi":"Продано в кассе","Reys topilmadi":"Рейс не найден","Chipta topilmadi":"Билет не найден","To'langan":"Оплачено","Kutilmoqda":"Ожидает оплаты","Muddati tugagan":"Срок истёк","Qaytarilgan":"Возвращён","Kassada to‘lanadi":"Оплата в кассе","Naqd pul":"Наличные","Bank kartasi":"Банковская карта","Naqd pul olindi":"Наличные получены","Buyurtmalar hali yo'q":"Заказов пока нет","Mijozdan":"Получены ли от клиента наличные","naqd pulni oldingizmi? Tasdiqlangandan so'ng chiptalar faol bo'ladi.":"? После подтверждения билеты будут активированы.","Chipta tekshirish":"Проверка билета","Chipta raqami":"Номер билета","Tekshirish":"Проверить","Yangi avtobus":"Новый автобус","Nomi":"Название","Davlat raqami":"Госномер","Model":"Модель","O'rinlar soni":"Количество мест","Qulayliklar (vergul bilan)":"Удобства (через запятую)","O'zbekcha":"Узбекский","Ruscha":"Русский","Inglizcha":"Английский","Davlat kodi":"Код страны","Hammasi":"Все","Jins":"Пол","Erkak":"Мужчина","Ayol":"Женщина","Mijozni reysga joylashtirish":"Посадить пассажира на рейс","Mijoz ismi":"Имя пассажира","To'lov usuli":"Способ оплаты","Naqd":"Наличные","Karta":"Карта","To'lov olindi":"Оплата получена","Chiptani rasmiylashtirish":"Оформить билет","Buyurtma":"Заказ","Chipta raqami":"Номер билета","Daromad hisoboti":"Отчёт о доходах","Boshlanish sanasi":"Дата начала","Tugash sanasi":"Дата окончания","Hisobotni ko'rish":"Показать отчёт","Excelga yuklab olish (CSV)":"Скачать для Excel (CSV)","Chop etish":"Печать","Jami tushum":"Общая выручка","Reyslar soni":"Количество рейсов","Borib-qaytish":"Поездки туда-обратно","Yo'lovchilar soni":"Количество пассажиров","Bandlik reytingi":"Рейтинг загрузки","Eng ko'p band":"Наибольшая загрузка","Eng kam band":"Наименьшая загрузка","Avtobus bo'yicha batafsil":"Подробно по автобусу","Avtobusni tanlang":"Выберите автобус","Borish":"Туда","Qaytish":"Обратно","Yo'lovchi / jami o'rin":"Пассажиры / всего мест","Bo'sh o'rin":"Свободные места","Bandlik":"Загрузка","Kassa tushumi":"Выручка наличными","Karta tushumi":"Выручка картой","To'lovlar":"Платежи","Mos reys yo'q":"Подходящих рейсов нет",      "Karta to'lovi DEMO rejimida: hisobotda tasdiqlangan karta buyurtmalari haqiqiy tushum bo'lmasligi mumkin.":"Оплата картой работает в ДЕМО-режиме: подтверждённые карточные заказы в отчёте могут не быть реальной выручкой.","Reys tanlang":"Выберите рейс","O'rin tanlang":"Выберите место","Telefon raqami":"Номер телефона","Yo'lovchi ismi":"Имя пассажира","To'lov turi":"Способ оплаты","Xaridor to'lovni amalga oshirganini tasdiqlang. Karta to'lovi hozir DEMO, pul haqiqiy yechilmaydi.":"Подтвердите, что клиент оплатил. Оплата картой сейчас в ДЕМО-режиме, реальные средства не списываются.","Rasmiylashtirish":"Оформить","Qabul qilindi":"Принято","To'lov turi":"Способ оплаты","Jadval":"Расписание","Hammasi":"Все","Reysga yozish":"Оформить пассажира","Qidirish":"Поиск","Reys sanasi":"Дата рейса","Yo'nalishlar":"Маршруты","O'rta bandlik":"Средняя загрузка","Safarlar":"Рейсы","Batafsil":"Подробнее","Ortga":"Назад","Mijoz":"Клиент","Narx":"Цена","Xalqaro":"Международный","Yopish":"Закрыть","Kassa":"Касса","Biriktirilmagan":"Не сопоставлен","Borish reysi":"Рейс туда","Qaytish reysi":"Обратный рейс","To'langan buyurtmalar bo'yicha hisob":"Расчёт по оплаченным заказам","Sana oralig'ida reys topilmadi":"В выбранном диапазоне рейсов нет","Sana noto'g'ri":"Неверная дата","Sana / jo‘nash":"Дата / отправление","Yo‘nalish turi":"Тип рейса","Yo‘lovchi / jami o‘rin":"Пассажиры / всего мест","Bo‘sh o‘rin":"Свободные места"
+    },
+    en: {
+      "Boshqaruv":"Dashboard","Reyslar":"Trips","Jadvallar":"Schedules","Avtobuslar":"Buses","Shaharlar":"Cities","Buyurtmalar":"Orders","Chipta tekshirish":"Ticket validation","Sotuv":"Sales","Hisobot":"Reports",
+      "Parol":"Password","Kirish":"Sign in","Chiqish":"Sign out","Saytni ochish":"Open website","Til / Язык / Language":"Language","Sessiya tugadi, qaytadan kiring":"Session expired. Sign in again","Parol noto'g'ri":"Incorrect password","Xatolik":"Error",
+      "Kelgusi reyslar":"Upcoming trips","Faol chiptalar":"Active tickets","Tushum":"Revenue","Foydalanuvchilar":"Users","Qaytarilgan chiptalar":"Returned tickets","Arxivdagi reyslar":"Archived trips","Tez boshlash":"Quick start","Yo'nalish":"Route","Jo'nash":"Departure","Yetib borish":"Arrival","O'rinlar":"Seats","Summa":"Amount","To'lov usuli":"Payment method","Holat":"Status","Sana":"Date","Telefon":"Phone",
+      "Faol reyslar":"Active trips","Tarix / arxiv":"History / archive","Reyslar tarixi va arxiv":"Trip history and archive","+ Yagona reys qo'shish":"+ Add a trip","Qayerdan":"From","Qayerga":"To","Davomiyligi (daq.)":"Duration (min.)","Narx (so'm)":"Price (UZS)","Peron":"Platform","Qo'shish":"Add","Saqlash":"Save","O'chirish":"Delete","Bekor qilish":"Cancel","O'rinlarni ko'rish":"View seats","Yo'lovchilarni ko'chirish":"Move passengers","Yo'lovchilarni boshqa reysga ko'chirish":"Move passengers to another trip","Yangi reys":"New trip","Ko'chirish":"Move","Eski andoza yo'q":"No old templates","Eski takroriy andozalar":"Old recurring templates","Andozani o'chirish":"Delete template","Reysni arxivga olish":"Archive trip","Reys vaqti":"Trip time","Sabab":"Reason","Bloklangan":"Blocked","Bo'sh":"Available","Sotilgan":"Sold","O'rin":"Seat","Yo'lovchi":"Passenger","Ayol":"Female","Erkak":"Male","Chipta":"Ticket","To'lov kutilmoqda":"Payment pending","Blokni olib tashlash":"Remove block","Bloklash (saytda band bo'ladi)":"Block (unavailable online)","Kassada sotildi":"Sold at cashier","Reys topilmadi":"Trip not found","Chipta topilmadi":"Ticket not found","To'langan":"Paid","Kutilmoqda":"Pending","Muddati tugagan":"Expired","Qaytarilgan":"Refunded","Kassada to‘lanadi":"Pay at cashier","Naqd pul":"Cash","Bank kartasi":"Bank card","Naqd pul olindi":"Cash received","Buyurtmalar hali yo'q":"No orders yet","Chipta raqami":"Ticket number","Tekshirish":"Validate","Yangi avtobus":"New bus","Nomi":"Name","Davlat raqami":"License plate","Model":"Model","O'rinlar soni":"Seat count","Qulayliklar (vergul bilan)":"Amenities (comma-separated)","O'zbekcha":"Uzbek","Ruscha":"Russian","Inglizcha":"English","Davlat kodi":"Country code","Jins":"Gender","Mijozni reysga joylashtirish":"Assign passenger to trip","Mijoz ismi":"Passenger name","To'lov usuli":"Payment method","Naqd":"Cash","Karta":"Card","To'lov olindi":"Payment received","Chiptani rasmiylashtirish":"Issue ticket","Daromad hisoboti":"Revenue report","Boshlanish sanasi":"Start date","Tugash sanasi":"End date","Hisobotni ko'rish":"Show report","Excelga yuklab olish (CSV)":"Download for Excel (CSV)","Chop etish":"Print","Jami tushum":"Total revenue","Reyslar soni":"Trip count","Borib-qaytish":"Round trips","Yo'lovchilar soni":"Passengers","Bandlik reytingi":"Occupancy ranking","Eng ko'p band":"Highest occupancy","Eng kam band":"Lowest occupancy","Avtobus bo'yicha batafsil":"Bus details","Avtobusni tanlang":"Select a bus","Borish":"Outbound","Qaytish":"Return","Yo'lovchi / jami o'rin":"Passengers / total seats","Bo'sh o'rin":"Available seats","Bandlik":"Occupancy","Kassa tushumi":"Cash revenue","Karta tushumi":"Card revenue","To'lovlar":"Payments","Mos reys yo'q":"No matching trips",      "Karta to'lovi DEMO rejimida: hisobotda tasdiqlangan karta buyurtmalari haqiqiy tushum bo'lmasligi mumkin.":"Card payments are in DEMO mode: confirmed card orders in this report may not represent actual revenue.","Reys tanlang":"Select a trip","O'rin tanlang":"Select a seat","Telefon raqami":"Phone number","Yo'lovchi ismi":"Passenger name","To'lov turi":"Payment method","Xaridor to'lovni amalga oshirganini tasdiqlang. Karta to'lovi hozir DEMO, pul haqiqiy yechilmaydi.":"Confirm that the customer has paid. Card payments are currently in DEMO mode; no real charge is made.","Rasmiylashtirish":"Issue ticket","Qabul qilindi":"Recorded","Jadval":"Schedule","Reysga yozish":"Assign passenger","Qidirish":"Search","Reys sanasi":"Trip date","Yo'nalishlar":"Routes","O'rta bandlik":"Average occupancy","Safarlar":"Trips","Batafsil":"Details","Ortga":"Back","Mijoz":"Customer","Narx":"Price","Xalqaro":"International","Yopish":"Close","Kassa":"Cashier","Biriktirilmagan":"Unmatched","Borish reysi":"Outbound trip","Qaytish reysi":"Return trip","To'langan buyurtmalar bo'yicha hisob":"Based on paid orders","Sana oralig'ida reys topilmadi":"No trips in this date range","Sana noto'g'ri":"Invalid date","Sana / jo‘nash":"Date / departure","Yo‘nalish turi":"Trip direction","Yo‘lovchi / jami o‘rin":"Passengers / total seats","Bo‘sh o‘rin":"Available seats"
+    }
+  };
+  TRANSLATIONS.ru['1) "Avtobuslar" va "Shaharlar" bo\'limlarini to\'ldiring. 2) "Reyslar" bo\'limida jo\'nash sanasi va vaqtini kiritib, har bir reysni qo\'lda qo\'shing. 3) "Jadvallar" da bugungi va ertangi reyslarni ko\'ring. 4) Kassada sotilgan o\'rinlarni bloklab qo\'ying.'] =
+    '1) Заполните разделы «Автобусы» и «Города». 2) В разделе «Рейсы» добавьте каждый рейс с датой и временем отправления. 3) В «Расписаниях» просматривайте рейсы на сегодня и завтра. 4) Отмечайте проданные в кассе места.';
+  TRANSLATIONS.en['1) "Avtobuslar" va "Shaharlar" bo\'limlarini to\'ldiring. 2) "Reyslar" bo\'limida jo\'nash sanasi va vaqtini kiritib, har bir reysni qo\'lda qo\'shing. 3) "Jadvallar" da bugungi va ertangi reyslarni ko\'ring. 4) Kassada sotilgan o\'rinlarni bloklab qo\'ying.'] =
+    '1) Complete the Buses and Cities sections. 2) Add each trip manually with its departure date and time in Trips. 3) View today’s and tomorrow’s departures in Schedules. 4) Mark seats sold at the cashier.';
+  TRANSLATIONS.ru['Yuklanmoqda…'] = 'Загрузка…';
+  TRANSLATIONS.en['Yuklanmoqda…'] = 'Loading…';
+  TRANSLATIONS.ru['Sana / jo‘nash'] = 'Дата / отправление';
+  TRANSLATIONS.en['Sana / jo‘nash'] = 'Date / departure';
+  TRANSLATIONS.ru['Yo‘nalish turi'] = 'Тип рейса';
+  TRANSLATIONS.en['Yo‘nalish turi'] = 'Trip direction';
+  TRANSLATIONS.ru['Qabul qilindi'] = 'Принято';
+  TRANSLATIONS.en['Qabul qilindi'] = 'Recorded';
+  TRANSLATIONS.ru['Mijozdan naqd pulni oldingizmi? Tasdiqlansa chipta faollashadi.'] =
+    'Получили наличные от клиента? После подтверждения билет будет активирован.';
+  TRANSLATIONS.en['Mijozdan naqd pulni oldingizmi? Tasdiqlansa chipta faollashadi.'] =
+    'Have you received the cash from the customer? Confirming will activate the ticket.';
+  TRANSLATIONS.ru['Karta/terminal to‘lovi haqiqatan tasdiqlandimi? Hozirgi saytdagi karta to‘lovi DEMO, pul haqiqiy yechilmaydi.'] =
+    'Оплата картой/терминалом подтверждена? Оплата картой на сайте пока в ДЕМО-режиме, реальные средства не списываются.';
+  TRANSLATIONS.en['Karta/terminal to‘lovi haqiqatan tasdiqlandimi? Hozirgi saytdagi karta to‘lovi DEMO, pul haqiqiy yechilmaydi.'] =
+    'Has the card/terminal payment been confirmed? Website card payment is currently a DEMO; no real charge is made.';
+  TRANSLATIONS.ru['Karta/terminal to‘lovi terminalda haqiqatan tasdiqlandimi? Saytdagi karta to‘lovi DEMO, pul haqiqiy yechilmaydi.'] =
+    'Оплата картой/терминалом подтверждена? Оплата картой на сайте пока в ДЕМО-режиме, реальные средства не списываются.';
+  TRANSLATIONS.en['Karta/terminal to‘lovi terminalda haqiqatan tasdiqlandimi? Saytdagi karta to‘lovi DEMO, pul haqiqiy yechilmaydi.'] =
+    'Has the card/terminal payment been confirmed? Website card payment is currently a DEMO; no real charge is made.';
+  [
+    ['Avtobus', 'Bus', 'Автобус'],
+    ['Bo‘limlar', 'Sections', 'Разделы'],
+    ['Hammasi', 'All', 'Все'],
+    ['Sana bo‘yicha', 'By date', 'По дате'],
+    ['Faol', 'Active', 'Активный'],
+    ['Bajarilgan', 'Completed', 'Завершён'],
+    ['Arxivlangan', 'Archived', 'В архиве'],
+    ['Bekor qilingan', 'Cancelled', 'Отменён'],
+    ['Jo‘nab ketdi', 'Departed', 'Отправился'],
+    ['Sana/vaqt', 'Date/time', 'Дата/время'],
+    ['Raqam', 'Plate', 'Номер'],
+    ['Qulayliklar', 'Amenities', 'Удобства'],
+    ['Davlat', 'Country', 'Страна'],
+    ['Yangi shahar', 'New city', 'Новый город'],
+    ['+ Reys qo‘shish', '+ Add a trip', '+ Добавить рейс'],
+    ['Kunlik reyslar jadvali', 'Daily trip schedule', 'Расписание рейсов на день'],
+    ['Ertangi kunga tayyorlangan avtobuslar', 'Buses scheduled for tomorrow', 'Автобусы на завтра'],
+    ['Bugungi avtobuslar', 'Today’s buses', 'Автобусы на сегодня'],
+    ['Tayyor', 'Scheduled', 'Подготовлен'],
+    ['avtobus', 'bus', 'автобус'],
+    ['avtobuslar', 'buses', 'автобусов'],
+    ['Bu kunga qo‘lda kiritilgan reys yo‘q', 'No manually added trips for this date', 'На эту дату вручную добавленных рейсов нет'],
+    ['Eski andoza yo‘q', 'No old templates', 'Старых шаблонов нет'],
+    ['Reyslar topilmadi', 'No trips found', 'Рейсы не найдены'],
+    ['Bu eski andozalar reys yaratmaydi. Kerak bo‘lmasa butunlay o‘chirishingiz mumkin.',
+      'These old templates do not create trips. Delete them if they are no longer needed.',
+      'Эти старые шаблоны не создают рейсы. Удалите их, если они больше не нужны.'],
+    ['Bo‘sh eski andoza reyslari ko‘rsatilmaydi. Qo‘lda kiritilgan va chiptasi bor reyslar ro‘yxatda qoladi.',
+      'Empty trips from old templates are hidden. Manually entered trips and trips with tickets remain listed.',
+      'Пустые рейсы из старых шаблонов скрыты. В списке остаются вручную добавленные рейсы и рейсы с билетами.'],
+    ['Davlat kodi UZ bo‘lmasa, reys "Xalqaro" hisoblanadi va yo‘lovchidan pasport so‘raladi.',
+      'If the country code is not UZ, the trip is international and passengers must provide a passport.',
+      'Если код страны не UZ, рейс считается международным, и пассажиру нужно указать паспорт.'],
+    ['QR-kod ostidagi 10 xonali chipta raqamini kiriting (yoki QR skaner matnini qo‘ying).',
+      'Enter the 10-digit ticket number below the QR code (or paste the QR scanner text).',
+      'Введите 10-значный номер билета под QR-кодом (или вставьте текст сканера QR-кода).'],
+    ['Avval reys tanlang', 'Select a trip first', 'Сначала выберите рейс'],
+    ['Tanlang', 'Select', 'Выберите'],
+    ['Pasport (AA1234567)', 'Passport (AA1234567)', 'Паспорт (AA1234567)'],
+    ['Tug‘ilgan sana', 'Date of birth', 'Дата рождения'],
+    ['Chipta narxi', 'Ticket price', 'Цена билета'],
+    ['Xizmat haqi', 'Service fee', 'Сервисный сбор'],
+    ['Jami', 'Total', 'Итого'],
+    ['o‘rtacha bandlik', 'average occupancy', 'средняя загрузка'],
+    ['Karta to‘lovi DEMO rejimida: haqiqiy pul yechilmaydi. Karta tanlanganda terminalda haqiqiy to‘lov olinganini alohida tasdiqlang.',
+      'Card payments are in DEMO mode: no real money is charged. If you select card, confirm that payment was actually received at the terminal.',
+      'Оплата картой работает в ДЕМО-режиме: реальные деньги не списываются. При выборе карты подтвердите оплату на терминале.'],
+    ['Yo‘lovchilar soni', 'Passengers', 'Количество пассажиров'],
+    ['Eng ko‘p band', 'Highest occupancy', 'Наибольшая загрузка'],
+    ['Eng kam band', 'Lowest occupancy', 'Наименьшая загрузка'],
+    ['Avtobus bo‘yicha batafsil', 'Bus details', 'Подробно по автобусу'],
+    ['To‘langan buyurtmalar bo‘yicha hisob. Reyslar bir xil avtobusda, teskari yo‘nalishda va borish reysi yetib kelgandan keyin jo‘nasa, borib-qaytish sifatida bog‘lanadi.',
+      'Based on paid orders. Trips are paired as a round trip when the same bus departs in the reverse direction after the outbound trip arrives.',
+      'Расчёт по оплаченным заказам. Рейсы объединяются в поездку туда-обратно, если тот же автобус отправляется в обратном направлении после прибытия.'],
+    ['Karta to‘lovi DEMO rejimida: hisobotda tasdiqlangan karta buyurtmalari haqiqiy tushum bo‘lmasligi mumkin.',
+      'Card payments are in DEMO mode: confirmed card orders in this report may not represent actual revenue.',
+      'Оплата картой работает в ДЕМО-режиме: подтверждённые карточные заказы в отчёте могут не быть реальной выручкой.'],
+    ['Yo‘lovchilar ro‘yxatini ko‘rish', 'View passenger list', 'Посмотреть список пассажиров'],
+    ['Yo‘lovchilar', 'Passengers', 'Пассажиры'],
+    ['Ism familiya', 'Full name', 'Фамилия и имя'],
+    ['Yo‘lovchilar topilmadi', 'No passengers found', 'Пассажиры не найдены'],
+    ['Yo‘lovchi ma’lumotlari yuklanmadi', 'Could not load passenger details', 'Не удалось загрузить данные пассажиров'],
+    ['reys', 'trips', 'рейсов'], ['borib-qaytish', 'round trips', 'поездок туда-обратно'], ['yo‘lovchi', 'passengers', 'пассажиров']
+  ].forEach(function (item) {
+    TRANSLATIONS.en[item[0]] = item[1];
+    TRANSLATIONS.ru[item[0]] = item[2];
+  });
+  var NORMALIZED_TRANSLATIONS = { en: {}, ru: {} };
+  ['en', 'ru'].forEach(function (lang) {
+    Object.keys(TRANSLATIONS[lang]).forEach(function (key) {
+      NORMALIZED_TRANSLATIONS[lang][key.replace(/[‘’`]/g, "'")] = TRANSLATIONS[lang][key];
+    });
+  });
+  function tr(value) {
+    var dictionary = TRANSLATIONS[LANG];
+    if (!dictionary) return value;
+    return dictionary[value] || NORMALIZED_TRANSLATIONS[LANG][value.replace(/[‘’`]/g, "'")] || value;
+  }
+  var sourceText = new WeakMap(), sourceAttributes = new WeakMap();
+  function localize(root) {
+    if (!root) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), node;
+    while ((node = walker.nextNode())) {
+      var value = node.nodeValue, trimmed = value.trim(), original = sourceText.get(node);
+      if (original === undefined) { original = trimmed; sourceText.set(node, original); }
+      if (trimmed) node.nodeValue = value.replace(trimmed, tr(original));
+    }
+    root.querySelectorAll('[placeholder], [title], [aria-label]').forEach(function (el) {
+      var originals = sourceAttributes.get(el);
+      if (!originals) { originals = {}; sourceAttributes.set(el, originals); }
+      ['placeholder', 'title', 'aria-label'].forEach(function (attr) {
+        var value = el.getAttribute(attr);
+        if (value) {
+          if (originals[attr] === undefined) originals[attr] = value;
+          el.setAttribute(attr, tr(originals[attr]));
+        }
+      });
+    });
+  }
+  function setLanguage(lang) {
+    LANG = ['uz', 'ru', 'en'].includes(lang) ? lang : 'uz';
+    document.documentElement.lang = LANG;
+    try { localStorage.setItem('adminLang', LANG); } catch (e) { /* ignore */ }
+    document.querySelectorAll('[data-admin-lang]').forEach(function (select) { select.value = LANG; });
+    localize($('#shell'));
+    localize($('#login'));
+    if (!$('#shell').hidden && TOKEN) {
+      localize(main);
+      refreshDynamicLabels(main);
+    }
+  }
+  document.querySelectorAll('[data-admin-lang]').forEach(function (select) {
+    select.value = LANG;
+    select.addEventListener('change', function () { setLanguage(select.value); });
+  });
+  localize($('#login'));
 
   var ERR = {
     bad_credentials: "Parol noto'g'ri", unauthorized: 'Sessiya tugadi, qaytadan kiring', too_many_tries: "Urinishlar ko'p, 5 daqiqadan keyin urinib ko'ring",
@@ -22,7 +182,10 @@
     cash_payment_required: "Bu buyurtma naqd to'lov emas",
     payment_method_mismatch: "To'lov usuli buyurtmaga mos emas",
     payment_method_locked: "Karta to'lovi boshlangan, naqd usulni tanlab bo'lmaydi",
-    bad_trip: 'Reysni tanlang'
+    bad_trip: 'Reysni tanlang', bad_fio: 'Yo‘lovchi ismini to‘g‘ri kiriting', bad_gender: 'Jinsni tanlang',
+    bad_phone: 'Telefon raqamini to‘g‘ri kiriting', bad_payment_method: 'To‘lov usulini tanlang',
+    bad_date: 'Sana oralig‘i noto‘g‘ri', bad_passport: 'Pasport ma’lumotini to‘g‘ri kiriting',
+    bad_birth: 'Tug‘ilgan sanani to‘g‘ri kiriting'
   };
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function toast(msg, kind) {
@@ -43,7 +206,7 @@
         return data;
       }); });
   }
-  function fail(e) { toast(ERR[e.code] || ("Xatolik: " + (e.code || e.message)), 'err'); }
+  function fail(e) { toast(tr(ERR[e.code] || ("Xatolik: " + (e.code || e.message))), 'err'); }
 
   /* ---------- kirish ---------- */
   function showLogin() {
@@ -55,30 +218,32 @@
     api('POST', '/login', { password: $('#ap').value }).then(function (r) {
       TOKEN = r.token; try { sessionStorage.setItem('adm', TOKEN); } catch (x) { /* ignore */ }
       $('#ap').value = ''; $('#le').textContent = ''; start();
-    }).catch(function (err) { $('#le').textContent = ERR[err.code] || 'Xatolik'; });
+    }).catch(function (err) { $('#le').textContent = tr(ERR[err.code] || 'Xatolik'); });
   });
   $('#out').addEventListener('click', showLogin);
 
   /* ---------- bo'limlar ---------- */
-  var TABS = [['dash', 'Boshqaruv'], ['trips', 'Reyslar'], ['sched', 'Jadvallar'], ['buses', 'Avtobuslar'], ['cities', 'Shaharlar'], ['orders', 'Buyurtmalar'], ['check', 'Chipta tekshirish']];
+  var TABS = [['dash', 'Boshqaruv'], ['trips', 'Reyslar'], ['sched', 'Jadvallar'], ['buses', 'Avtobuslar'], ['cities', 'Shaharlar'], ['orders', 'Buyurtmalar'], ['sales', 'Sotuv'], ['reports', 'Hisobot'], ['check', 'Chipta tekshirish']];
   var cache = { cities: [], buses: [] };
   var cur = 'dash';
   function renderTabs() {
-    $('#tabs').innerHTML = TABS.map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + t[1] + '</button>'; }).join('');
+    $('#tabs').innerHTML = TABS.map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + tr(t[1]) + '</button>'; }).join('');
   }
   $('#tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) go(b.dataset.tab); });
 
   function start() {
     $('#login').hidden = true; $('#shell').hidden = false;
+    localize($('#shell'));
     Promise.all([api('GET', '/cities'), api('GET', '/buses')]).then(function (r) { cache.cities = r[0]; cache.buses = r[1]; go(cur); }).catch(fail);
   }
   function go(tab) {
     cur = tab; renderTabs();
     main.innerHTML = '<div class="spin"></div>';
-    ({ dash: dash, trips: trips, sched: sched, buses: buses, cities: cities, orders: orders, check: check })[tab]().catch(fail);
+    ({ dash: dash, trips: trips, sched: sched, buses: buses, cities: cities, orders: orders, sales: sales, reports: reports, check: check })[tab]()
+      .then(function () { localize(main); }).catch(fail);
   }
 
-  var cityOpts = function (sel) { return cache.cities.map(function (c) { return '<option value="' + c.id + '"' + (c.id === sel ? ' selected' : '') + '>' + esc(c.name_uz) + (c.country !== 'UZ' ? ' (' + esc(c.country) + ')' : '') + '</option>'; }).join(''); };
+  var cityOpts = function (sel) { return cache.cities.map(function (c) { return '<option value="' + c.id + '"' + (c.id === sel ? ' selected' : '') + '>' + esc(c['name_' + LANG] || c.name_uz) + (c.country !== 'UZ' ? ' (' + esc(c.country) + ')' : '') + '</option>'; }).join(''); };
   var busOpts = function (sel) { return cache.buses.map(function (b) { return '<option value="' + b.id + '"' + (b.id === sel ? ' selected' : '') + '>' + esc(b.name) + ' (' + b.seats + ')</option>'; }).join(''); };
   var fld = function (label, html) { return '<div class="field"><label>' + label + '</label>' + html + '</div>'; };
 
@@ -116,7 +281,7 @@
         (list.length ? list.map(function (t) {
           var active = t.status === 'active' && !tripArchive;
           var state = t.status === 'cancelled' ? 'Bekor qilingan' : t.status === 'archived' ? 'Arxivlangan' : (t.status === 'active' ? (tripArchive ? 'Bajarilgan' : 'Faol') : t.status);
-          return '<tr data-id="' + t.id + '"><td><b>' + esc(t.departAt) + '</b>' + (t.noticeReason ? '<div class="hint">Sabab: ' + esc(t.noticeReason) + '</div>' : '') + '</td><td>' + esc(t.from.uz) + ' → ' + esc(t.to.uz) + '</td><td>' + esc(t.bus.name) + '</td>' +
+          return '<tr data-id="' + t.id + '"><td><b>' + esc(t.departAt) + '</b>' + (t.noticeReason ? '<div class="hint">Sabab: ' + esc(t.noticeReason) + '</div>' : '') + '</td><td>' + esc(cityName(t.from)) + ' → ' + esc(cityName(t.to)) + '</td><td>' + esc(t.bus.name) + '</td>' +
             '<td>' + (active ? '<input class="inp s" style="width:120px" type="number" step="1000" min="1000" data-f="price" value="' + t.price + '">' : money(t.price)) + '</td>' +
             '<td>' + (active ? '<input class="inp s" style="width:70px" data-f="platform" maxlength="10" value="' + esc(t.platform) + '">' : esc(t.platform || '—')) + '</td>' +
             '<td>' + t.free + ' / ' + t.total + (t.bookedCount ? '<div class="hint">' + t.bookedCount + ' chipta</div>' : '') + '</td><td><span class="pill ' + (active ? 'ok' : 'cancel') + '">' + state + '</span></td>' +
@@ -182,6 +347,7 @@
       }).join('');
       $('#seatpanel').innerHTML = '<div class="card stack"><h2>Yo\'lovchilarni boshqa reysga ko\'chirish</h2><p class="hint">Faqat ayni yo\'nalishdagi reyslar ko\'rsatiladi. Narx farqini yo\'lovchi bilan alohida kelishing; tizim pul olmaydi yoki qaytarmaydi.</p>' +
         (data.orders.length ? ordersHtml : '<p class="muted">Ko\'chirish uchun faol chiptalar topilmadi.</p>') + '</div>';
+      localize($('#seatpanel'));
       $('#seatpanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       $('#seatpanel').onclick = function (e) {
         var button = e.target.closest('[data-move-order]');
@@ -207,9 +373,10 @@
         return '<button type="button" class="aseat ' + cls + '" data-no="' + s.no + '" aria-label="O\'rin ' + s.no + '">' + s.no + '</button>';
       };
       var grid = Object.keys(rows).map(function (r) { var x = rows[r]; return '<div class="brow"><div class="pair">' + btn(x[0]) + btn(x[1]) + '</div><div class="pair">' + btn(x[2]) + btn(x[3]) + '</div></div>'; }).join('');
-      $('#seatpanel').innerHTML = '<div class="card"><h2 style="margin-bottom:6px">' + esc(d.trip.from.uz) + ' → ' + esc(d.trip.to.uz) + ', ' + esc(d.trip.departAt) + '</h2>' +
+      $('#seatpanel').innerHTML = '<div class="card"><h2 style="margin-bottom:6px">' + esc(cityName(d.trip.from)) + ' → ' + esc(cityName(d.trip.to)) + ', ' + esc(d.trip.departAt) + '</h2>' +
         '<p class="muted" style="margin-top:0">Bo\'sh o\'rinni bosing: kassada sotildi deb bloklanadi. Bloklangan o\'rinni bossangiz, blok olinadi. Ko\'k/pushti: sotilgan.</p>' +
         '<div class="seatgrid"><div class="bus" style="max-width:300px"><div class="stack" style="gap:10px">' + grid + '</div></div><div id="seatinfo" class="stack"><p class="muted">O\'rin tanlang.</p></div></div></div>';
+      localize($('#seatpanel'));
       $('#seatpanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       // onclick (addEventListener emas): oyna qayta ochilganda eski tinglovchilar to'planib qolmasin
       $('#seatpanel').onclick = function (e) {
@@ -218,11 +385,14 @@
         document.querySelectorAll('.aseat.on').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on');
         if (s.status === 'taken') {
           info.innerHTML = '<h2>' + s.no + '-o\'rin: sotilgan</h2><div class="sum-row"><span class="muted">Yo\'lovchi</span><b>' + esc(s.fio) + '</b></div><div class="sum-row"><span class="muted">Jins</span><b>' + (s.gender === 'f' ? 'Ayol' : 'Erkak') + '</b></div><div class="sum-row"><span class="muted">Telefon</span><b>' + esc(s.phone) + '</b></div><div class="sum-row"><span class="muted">Chipta</span><b>' + esc(s.number) + '</b></div>' + (s.pending ? '<div class="note warn">To\'lov kutilmoqda</div>' : '');
+          localize(info);
         } else if (s.status === 'blocked') {
           info.innerHTML = '<h2>' + s.no + '-o\'rin: bloklangan</h2><p class="muted">Sabab: ' + esc(s.reason) + '</p><button class="btn btn-danger sm" id="ub">Blokni olib tashlash</button>';
+          localize(info);
           $('#ub').addEventListener('click', function () { api('DELETE', '/trips/' + id + '/block/' + s.no).then(function () { toast("Blok olib tashlandi", 'ok'); openSeats(id); }).catch(fail); });
         } else {
           info.innerHTML = '<h2>' + s.no + '-o\'rin: bo\'sh</h2>' + fld('Sabab', '<input class="inp s" id="br" value="kassa" maxlength="60">') + '<button class="btn sm" id="bb">Bloklash (saytda band bo\'ladi)</button>';
+          localize(info);
           $('#bb').addEventListener('click', function () { api('POST', '/trips/' + id + '/block', { seat: s.no, reason: $('#br').value }).then(function () { toast('Bloklandi', 'ok'); openSeats(id); }).catch(fail); });
         }
       };
@@ -243,11 +413,13 @@
     return Promise.all([tripsFor(tomorrow), tripsFor(today), api('GET', '/schedules')]).then(function (results) {
       var tomorrowTrips = results[0], todayTrips = results[1], oldSchedules = results[2];
       var renderDay = function (title, date, list) {
-        return '<section><h2>' + title + ' <span class="muted">(' + esc(date) + ', ' + list.length + ' ta avtobus)</span></h2>' +
+        var busCount = LANG === 'uz' ? list.length + ' ta avtobus' :
+          list.length + ' ' + tr(list.length === 1 ? 'avtobus' : 'avtobuslar');
+        return '<section><h2>' + title + ' <span class="muted">(' + esc(date) + ', ' + busCount + ')</span></h2>' +
           '<div class="card scroll"><table class="tbl"><thead><tr><th>Jo\'nash</th><th>Yo\'nalish</th><th>Avtobus</th><th>Bo\'sh o\'rin</th><th>Narx</th><th>Peron</th><th>Holat</th></tr></thead><tbody>' +
           (list.length ? list.map(function (t) {
             var departed = t.departAt <= localNow;
-            return '<tr><td><b>' + esc(t.departAt.slice(11, 16)) + '</b></td><td>' + esc(t.from.uz) + ' → ' + esc(t.to.uz) + '</td><td>' + esc(t.bus.name) + '</td>' +
+            return '<tr><td><b>' + esc(t.departAt.slice(11, 16)) + '</b></td><td>' + esc(cityName(t.from)) + ' → ' + esc(cityName(t.to)) + '</td><td>' + esc(t.bus.name) + '</td>' +
               '<td>' + t.free + ' / ' + t.total + '</td><td>' + money(t.price) + '</td><td>' + esc(t.platform || '—') + '</td>' +
               '<td><span class="pill ' + (departed ? 'cancel' : 'ok') + '">' + (departed ? 'Jo\'nab ketdi' : 'Tayyor') + '</span></td></tr>';
           }).join('') : '<tr><td colspan="7" class="muted">Bu kunga qo\'lda kiritilgan reys yo\'q</td></tr>') +
@@ -262,7 +434,7 @@
         '<p class="hint">Bu eski andozalar reys yaratmaydi. Kerak bo\'lmasa butunlay o\'chirishingiz mumkin.</p>' +
         '<div class="scroll"><table class="tbl"><thead><tr><th>Yo\'nalish</th><th>Vaqt</th><th>Avtobus</th><th></th></tr></thead><tbody>' +
         (oldSchedules.length ? oldSchedules.map(function (s) {
-          return '<tr data-id="' + s.id + '"><td>' + esc(s.f_uz) + ' → ' + esc(s.c_uz) + '</td><td>' + esc(s.depart_time) + '</td><td>' + esc(s.bus_name) + '</td>' +
+          return '<tr data-id="' + s.id + '"><td>' + esc(s['f_' + LANG] || s.f_uz) + ' → ' + esc(s['c_' + LANG] || s.c_uz) + '</td><td>' + esc(s.depart_time) + '</td><td>' + esc(s.bus_name) + '</td>' +
             '<td><button class="btn btn-danger xs" data-delete="1">Andozani o\'chirish</button></td></tr>';
         }).join('') : '<tr><td colspan="4" class="muted">Eski andoza yo\'q</td></tr>') +
         '</tbody></table></div></details>';
@@ -330,6 +502,247 @@
     });
   }
 
+  /* ---------- kassada mijozni reysga joylashtirish ---------- */
+  var saleTripId = '';
+  var salesTripList = [];
+  function sales() {
+    return Promise.all([api('GET', '/trips'), api('GET', '/sales-config')]).then(function (results) {
+      var list = results[0], saleConfig = results[1];
+      list = list.filter(function (trip) { return trip.status === 'active'; });
+      salesTripList = list;
+      main.innerHTML = '<h1>Mijozni reysga joylashtirish</h1>' +
+        (saleConfig.demoCardPayments ? '<div class="note warn">Karta to‘lovi DEMO rejimida: haqiqiy pul yechilmaydi. Karta tanlanganda terminalda haqiqiy to‘lov olinganini alohida tasdiqlang.</div>' : '') +
+        '<form id="saleForm" class="card stack"><div class="row">' +
+        fld('Reys tanlang', '<select class="inp s" name="tripId" required><option value="">Reys tanlang</option>' +
+          list.map(function (trip) {
+            return '<option value="' + trip.id + '"' + (String(trip.id) === String(saleTripId) ? ' selected' : '') + '>' +
+              esc(trip.from[LANG] || trip.from.uz) + ' → ' + esc(trip.to[LANG] || trip.to.uz) + ' · ' + esc(trip.departAt) +
+              ' · ' + esc(trip.bus.name) + ' · ' + money(trip.price) + '</option>';
+          }).join('') + '</select>') +
+        '<div id="saleAmount" class="note" hidden></div>' +
+        fld('O‘rin tanlang', '<select class="inp s" name="seat" required disabled><option value="">Avval reys tanlang</option></select>') +
+        fld('Yo‘lovchi ismi', '<input class="inp s" name="fio" required maxlength="60">') +
+        fld('Telefon raqami', '<input class="inp s" name="phone" required autocomplete="tel" placeholder="+998901234567">') +
+        fld('Jins', '<select class="inp s" name="gender" required><option value="">Tanlang</option><option value="m">Erkak</option><option value="f">Ayol</option></select>') +
+        fld('To‘lov turi', '<select class="inp s" name="paymentMethod" required><option value="cash">Naqd</option><option value="card">Karta</option></select>') +
+        '<div id="intlFields" class="row" hidden>' +
+        fld('Pasport (AA1234567)', '<input class="inp s" name="passport" maxlength="9">') +
+        fld('Tug‘ilgan sana', '<input class="inp s" type="date" name="birth">') + '</div>' +
+        '</div><button class="btn btn-lime sm" type="submit">Chiptani rasmiylashtirish</button><div id="saleResult" aria-live="polite"></div></form>';
+      var form = $('#saleForm');
+      var seatSelect = form.elements.seat;
+      function updateAmount() {
+        var trip = list.find(function (item) { return String(item.id) === form.elements.tripId.value; });
+        var amountBox = $('#saleAmount');
+        if (!trip) { amountBox.hidden = true; return; }
+        var amount = trip.price, fee = Math.round(amount * saleConfig.feePercent / 100);
+        amountBox.hidden = false;
+        amountBox.innerHTML = '<span>Chipta narxi</span>: ' + esc(money(amount)) + ' · ' +
+          '<span>Xizmat haqi</span>: ' + esc(money(fee)) + ' · <span>Jami</span>: ' + esc(money(amount + fee));
+        localize(amountBox);
+      }
+      form.elements.tripId.addEventListener('change', function () {
+        saleTripId = form.elements.tripId.value;
+        updateAmount();
+        seatSelect.disabled = true;
+        seatSelect.innerHTML = '<option value="">Yuklanmoqda…</option>';
+        if (!saleTripId) { seatSelect.innerHTML = '<option value="">Avval reys tanlang</option>'; return; }
+        api('GET', '/trips/' + saleTripId + '/seats').then(function (data) {
+          $('#intlFields').hidden = !data.trip.foreign;
+          var free = data.seats.filter(function (seat) { return seat.status === 'free'; });
+          seatSelect.innerHTML = '<option value="">O‘rin tanlang</option>' + free.map(function (seat) {
+            return '<option value="' + seat.no + '">' + seat.no + '</option>';
+          }).join('');
+          seatSelect.disabled = free.length === 0;
+          if (!free.length) seatSelect.innerHTML = '<option value="">Bo‘sh o‘rin yo‘q</option>';
+        }).catch(fail);
+      });
+      if (saleTripId) form.elements.tripId.dispatchEvent(new Event('change'));
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var method = form.elements.paymentMethod.value;
+        var confirmation = method === 'cash'
+          ? 'Mijozdan naqd pulni oldingizmi? Tasdiqlansa chipta faollashadi.'
+          : (saleConfig.demoCardPayments
+            ? 'Karta/terminal to‘lovi terminalda haqiqatan tasdiqlandimi? Saytdagi karta to‘lovi DEMO, pul haqiqiy yechilmaydi.'
+            : 'Karta/terminal to‘lovi haqiqatan tasdiqlandimi? Tasdiqlansa chipta faollashadi.');
+        if (!confirm(tr(confirmation))) return;
+        var submit = form.querySelector('[type=submit]');
+        submit.disabled = true;
+        api('POST', '/trips/' + form.elements.tripId.value + '/sales', {
+          seat: form.elements.seat.value, fio: form.elements.fio.value, phone: form.elements.phone.value,
+          gender: form.elements.gender.value, paymentMethod: form.elements.paymentMethod.value,
+          passport: form.elements.passport.value, birth: form.elements.birth.value
+        }).then(function (result) {
+          $('#saleResult').innerHTML = '<div class="note" style="margin-top:14px">Qabul qilindi · ' +
+            'Buyurtma: <b>' + esc(result.orderId) + '</b> · Chipta: <b>' + esc(result.ticketNumber) +
+            '</b> · O‘rin: <b>' + result.seat + '</b> · Summa: <b>' + money(result.total) + '</b></div>';
+          form.elements.fio.value = '';
+          form.elements.phone.value = '';
+          toast('Chipta rasmiylashtirildi', 'ok');
+          localize($('#saleResult'));
+          form.elements.tripId.dispatchEvent(new Event('change'));
+          submit.disabled = false;
+        }).catch(function (error) { submit.disabled = false; fail(error); });
+      });
+    });
+  }
+
+  /* ---------- avtobuslar va reyslar hisoboti ---------- */
+  var reportData = null;
+  var reportFrom = '', reportTo = '', reportBus = '';
+  var cityName = function (city) { return city[LANG] || city.uz; };
+  function cityLabel(city) {
+    var uz = city.uz || city.name_uz || '';
+    return '<span data-city-label data-city-uz="' + esc(uz) + '" data-city-ru="' +
+      esc(city.ru || city.name_ru || uz) + '" data-city-en="' + esc(city.en || city.name_en || uz) + '">' +
+      esc(cityName(city)) + '</span>';
+  }
+  function refreshDynamicLabels(root) {
+    if (!root) return;
+    root.querySelectorAll('[data-city-label]').forEach(function (element) {
+      element.textContent = element.getAttribute('data-city-' + LANG) || element.getAttribute('data-city-uz') || '';
+    });
+    var tripSelect = $('select[name="tripId"]', root);
+    if (!tripSelect || !salesTripList) return;
+    Array.from(tripSelect.options).forEach(function (option) {
+      var trip = salesTripList.find(function (item) { return String(item.id) === option.value; });
+      if (trip) option.textContent = cityName(trip.from) + ' → ' + cityName(trip.to) + ' · ' +
+        trip.departAt + ' · ' + trip.bus.name + ' · ' + money(trip.price);
+    });
+  }
+  function reportTripRows(bus) {
+    return bus.trips.map(function (trip) {
+      return '<tr><td>' + esc(trip.departAt) + '</td><td><span>' + (trip.isReturn ? 'Qaytish' : 'Borish') + '</span>' + (trip.pairedTripId ? ' · #' + trip.pairedTripId : '') +
+        '</td><td>' + cityLabel(trip.from) + ' → ' + cityLabel(trip.to) + '</td>' +
+        '<td><button class="report-passenger-count" type="button" data-report-passengers="' + trip.id +
+        '" aria-expanded="false" title="Yo‘lovchilar ro‘yxatini ko‘rish">' + trip.passengers + ' / ' + trip.totalSeats + '</button></td><td>' + trip.freeSeats + '</td><td>' + trip.occupancy + '%</td>' +
+        '<td>' + money(trip.revenue) + '</td><td>' + money(trip.cashRevenue) + '</td><td>' + money(trip.cardRevenue) + '</td></tr>' +
+        '<tr class="report-passengers" hidden><td colspan="9"><div class="report-passenger-panel"></div></td></tr>';
+    }).join('');
+  }
+  function renderReports(data) {
+    reportData = data;
+    var visibleBuses = reportBus ? data.buses.filter(function (bus) { return String(bus.id) === reportBus; }) : data.buses;
+    var totals = visibleBuses.reduce(function (sum, bus) {
+      sum.trips += bus.tripCount;
+      sum.roundTrips += bus.roundTrips;
+      sum.passengers += bus.passengers;
+      sum.revenue += bus.revenue;
+      return sum;
+    }, { trips: 0, roundTrips: 0, passengers: 0, revenue: 0 });
+    var busCards = visibleBuses.map(function (bus) {
+      return '<details class="card bus-report"><summary><b>' + esc(bus.name) + '</b>' +
+        (bus.model ? ' · ' + esc(bus.model) : '') + (bus.plate ? ' · ' + esc(bus.plate) : '') +
+        ' <span class="muted">· ' + bus.tripCount + ' <span>reys</span> · ' + bus.roundTrips + ' <span>borib-qaytish</span> · ' +
+        bus.averageOccupancy + '% <span>o‘rtacha bandlik</span> · ' +
+        bus.passengers + ' <span>yo‘lovchi</span> · ' + money(bus.revenue) + '</span></summary>' +
+        '<div class="scroll"><table class="tbl"><thead><tr><th>Sana / jo‘nash</th><th>Yo‘nalish turi</th><th>Yo‘nalish</th>' +
+        '<th>Yo‘lovchi / jami o‘rin</th><th>Bo‘sh o‘rin</th><th>Bandlik</th><th>Tushum</th><th>Kassa tushumi</th><th>Karta tushumi</th></tr></thead><tbody>' +
+        (bus.trips.length ? reportTripRows(bus) : '<tr><td colspan="9" class="muted">Reyslar topilmadi</td></tr>') +
+        '</tbody></table></div></details>';
+    }).join('');
+    main.innerHTML = '<h1>Daromad hisoboti</h1>' +
+      (data.demoCardPayments ? '<div class="note warn no-print">Karta to‘lovi DEMO rejimida: hisobotda tasdiqlangan karta buyurtmalari haqiqiy tushum bo‘lmasligi mumkin.</div>' : '') +
+      '<form id="reportFilters" class="card row no-print">' +
+      fld('Boshlanish sanasi', '<input class="inp s" type="date" name="from" value="' + esc(reportFrom) + '">') +
+      fld('Tugash sanasi', '<input class="inp s" type="date" name="to" value="' + esc(reportTo) + '">') +
+      fld('Avtobus', '<select class="inp s" name="bus"><option value="">Hammasi</option>' + data.buses.map(function (bus) {
+        return '<option value="' + bus.id + '"' + (String(bus.id) === reportBus ? ' selected' : '') + '>' +
+          esc(bus.name) + (bus.plate ? ' · ' + esc(bus.plate) : '') + '</option>';
+      }).join('') + '</select>') +
+      '<button class="btn btn-lime sm" type="submit">Hisobotni ko‘rish</button>' +
+      '<button class="btn btn-ghost sm" id="reportCsv" type="button">Excelga yuklab olish (CSV)</button>' +
+      '<button class="btn btn-ghost sm" type="button" onclick="window.print()">Chop etish</button></form>' +
+      '<p class="hint">To‘langan buyurtmalar bo‘yicha hisob. Reyslar bir xil avtobusda, teskari yo‘nalishda va borish reysi yetib kelgandan keyin jo‘nasa, borib-qaytish sifatida bog‘lanadi.</p>' +
+      '<div class="stats"><div class="stat"><span>Jami tushum</span><b style="font-size:22px">' + money(totals.revenue) + '</b></div>' +
+      '<div class="stat"><span>Reyslar soni</span><b>' + totals.trips + '</b></div>' +
+      '<div class="stat"><span>Borib-qaytish</span><b>' + totals.roundTrips + '</b></div>' +
+      '<div class="stat"><span>Yo‘lovchilar soni</span><b>' + totals.passengers + '</b></div></div>' +
+      '<h2>Avtobus bo‘yicha batafsil</h2>' +
+      (busCards || '<div class="card muted">Sana oralig‘ida reys topilmadi</div>');
+    localize(main);
+    $('#reportFilters').addEventListener('submit', function (event) {
+      event.preventDefault();
+      reportFrom = event.target.elements.from.value;
+      reportTo = event.target.elements.to.value;
+      reportBus = event.target.elements.bus.value;
+      reports();
+    });
+    $('#reportCsv').addEventListener('click', exportReport);
+  }
+  main.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-report-passengers]');
+    if (!button || !main.contains(button)) return;
+    var detailsRow = button.closest('tr').nextElementSibling;
+    var panel = detailsRow && detailsRow.querySelector('.report-passenger-panel');
+    if (!panel) return;
+    if (button.getAttribute('aria-expanded') === 'true') {
+      button.setAttribute('aria-expanded', 'false');
+      detailsRow.hidden = true;
+      return;
+    }
+    button.setAttribute('aria-expanded', 'true');
+    detailsRow.hidden = false;
+    if (button.dataset.loaded === 'true') return;
+    button.disabled = true;
+    panel.textContent = tr('Yuklanmoqda…');
+    api('GET', '/reports/trips/' + encodeURIComponent(button.dataset.reportPassengers) + '/passengers')
+      .then(function (result) {
+        button.dataset.loaded = 'true';
+        panel.innerHTML = result.passengers.length
+          ? '<h3>' + tr('Yo‘lovchilar') + '</h3><div class="scroll"><table class="tbl"><thead><tr><th>' +
+            tr('O‘rin') + '</th><th>' + tr('Ism familiya') + '</th><th>' + tr('Telefon') + '</th><th>' +
+            tr('Jins') + '</th></tr></thead><tbody>' + result.passengers.map(function (passenger) {
+              return '<tr><td>' + passenger.seat + '</td><td>' + esc(passenger.fio) + '</td><td>' +
+                esc(passenger.phone) + '</td><td>' + tr(passenger.gender === 'f' ? 'Ayol' : 'Erkak') + '</td></tr>';
+            }).join('') + '</tbody></table></div>'
+          : '<p class="muted">' + tr('Yo‘lovchilar topilmadi') + '</p>';
+        button.disabled = false;
+      }).catch(function (error) {
+        panel.textContent = tr('Yo‘lovchi ma’lumotlari yuklanmadi');
+        button.setAttribute('aria-expanded', 'false');
+        detailsRow.hidden = true;
+        button.disabled = false;
+        fail(error);
+      });
+  });
+  function reports() {
+    var query = new URLSearchParams();
+    if (reportFrom) query.set('from', reportFrom);
+    if (reportTo) query.set('to', reportTo);
+    return api('GET', '/reports/buses' + (query.toString() ? '?' + query : '')).then(renderReports);
+  }
+  function exportReport() {
+    if (!reportData) return;
+    var buses = reportBus ? reportData.buses.filter(function (bus) { return String(bus.id) === reportBus; }) : reportData.buses;
+    var rows = [[tr('Avtobus'), tr('Davlat raqami'), tr('Sana / jo‘nash'), tr('Yo‘nalish turi'), tr('Yo‘nalish'),
+      tr('Yo‘lovchilar'), tr('Jami o‘rin'), tr('Bo‘sh o‘rin'), tr('Bandlik %'), tr('Tushum'), tr('Naqd tushum'), tr('Karta tushumi')]];
+    buses.forEach(function (bus) {
+      bus.trips.forEach(function (trip) {
+        rows.push([bus.name, bus.plate || '', trip.departAt, trip.isReturn ? 'Qaytish' : 'Borish',
+          cityName(trip.from) + ' → ' + cityName(trip.to), trip.passengers, trip.totalSeats, trip.freeSeats,
+          trip.occupancy, trip.revenue, trip.cashRevenue, trip.cardRevenue]);
+      });
+    });
+    var csv = '\uFEFF' + rows.map(function (row) {
+      return row.map(function (value) {
+        var text = String(value == null ? '' : value);
+        if (/^[=+\-@]/.test(text)) text = "'" + text;
+        return '"' + text.replace(/"/g, '""') + '"';
+      }).join(';');
+    }).join('\r\n');
+    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'avtobus-hisoboti.csv';
+    link.style.position = 'fixed';
+    link.style.left = '-10000px';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function () { link.remove(); URL.revokeObjectURL(url); }, 1000);
+  }
+
   /* ---------- buyurtmalar ---------- */
   var STATUS = { paid: ["To'langan", 'ok'], pending: ['Kutilmoqda', 'low'], expired: ['Muddati tugagan', ''], returned: ['Qaytarilgan', 'cancel'] };
   function orders() {
@@ -341,7 +754,7 @@
           var action = o.status === 'pending' && o.payment_method === 'cash'
             ? '<button class="btn btn-lime xs" data-cash-paid="' + esc(o.id) + '">Naqd pul olindi</button>'
             : '';
-          return '<tr><td>' + esc(o.created_at) + '</td><td>' + esc(o.f_uz) + ' → ' + esc(o.c_uz) + '</td><td>' + esc(o.depart_at) + '</td><td>' + esc(o.seats) + '</td><td>' + esc(o.phone) + '</td><td>' + money(o.total) + '</td><td>' + method + '</td><td><span class="pill ' + st[1] + '">' + st[0] + '</span></td><td>' + action + '</td></tr>';
+          return '<tr><td>' + esc(o.created_at) + '</td><td>' + esc(o['f_' + LANG] || o.f_uz) + ' → ' + esc(o['c_' + LANG] || o.c_uz) + '</td><td>' + esc(o.depart_at) + '</td><td>' + esc(o.seats) + '</td><td>' + esc(o.phone) + '</td><td>' + money(o.total) + '</td><td>' + method + '</td><td><span class="pill ' + st[1] + '">' + st[0] + '</span></td><td>' + action + '</td></tr>';
         }).join('') : '<tr><td colspan="9" class="muted">Buyurtmalar hali yo\'q</td></tr>') + '</tbody></table></div>';
       main.querySelector('tbody').addEventListener('click', function (e) {
         var button = e.target.closest('[data-cash-paid]');
