@@ -9,7 +9,7 @@ Hech qanday tashqi serverga ulanmaydi, boshqa kompaniyaning logotipi, nomi yoki 
 
 ## Tez ishga tushirish
 
-Kerak: Node.js 20 yoki yangiroq.
+Kerak: Node.js 22.13 yoki yangiroq (`node:sqlite` uchun).
 
 ```bash
 npm install
@@ -63,19 +63,32 @@ Sozlamalar uchun `.env.example` ni `.env` ga nusxalab, kerakli qiymatlarni o'zga
 
 `admin` va `client` uchun alohida Android ilovalari GitHub Actions orqali yig'iladi. `main` ga Android fayllari o'zgargan pushdan so'ng GitHub'dagi **Actions → Build Android APKs** ishini ochib, `marshrut-android-apks` artefaktini yuklab oling. APKlar release kaliti bilan imzolanmagan debug buildlar bo'lib, Android o'rnatishda tasdiq so'rashi mumkin.
 
-Admin telefonining o'zida Node.js serverini ishga tushirish uchun Android'da Termux kerak: server Node.js/SQLite backend bo'lgani sabab APKning o'zi server jarayonini ishga tushirmaydi. Termux'ni ishonchli manbadan o'rnating va Android sozlamalarida Termux uchun batareya cheklovini o'chiring.
+Admin telefonining o'zida Node.js serverini ishga tushirish uchun Android'da Termux kerak: server Node.js/SQLite backend bo'lgani sabab APKning o'zi server jarayonini ishga tushirmaydi. Server Node'ning ichki SQLite modulidan foydalanadi, shuning uchun native C++ SQLite addonini telefonda yig'ish shart emas. Termux'ni ishonchli manbadan o'rnating, `nodejs-lts` (Node.js 22.13+) ni ishlating va Android sozlamalarida Termux uchun batareya cheklovini o'chiring.
+
+Oldin Termux'da native SQLite modulini yig'ishda xato olgan bo'lsangiz, mavjud loyihani yangilang va serverni qayta ishga tushiring:
+
+```sh
+cd ~/avtobus-bilet
+git pull origin main
+pkg update
+pkg upgrade
+pkg install nodejs-lts
+bash mobile/termux-run.sh
+```
+
+`.env` faylini va uning admin parolini o'chirmang. Skript eski yoki chala o'rnatilgan Node paketlarini `npm ci` bilan tozalab, native addonlarsiz qayta o'rnatadi.
 
 1. Admin telefonida hotspotni yoqing va Termux'ni oching:
 
    ```sh
    pkg update
-   pkg install nodejs-lts git clang make python pkg-config
+   pkg install nodejs-lts git
    git clone https://github.com/sdavron500-ui/avtobus-bilet.git
    cd avtobus-bilet
    bash mobile/termux-run.sh
    ```
 
-   Birinchi ishga tushishda SQLite moduli telefonda yig'ilishi mumkin va vaqt oladi. Skript kuchli admin parolini yaratib ko'rsatadi; uni saqlang. Server `0.0.0.0:3000` da ishga tushadi, bazasi Termux loyihasining `data` papkasida saqlanadi. Server ishlashi uchun Termux seansini ochiq qoldiring.
+   Skript kuchli admin parolini yaratib ko'rsatadi; uni saqlang. Server `0.0.0.0:3000` da ishga tushadi, bazasi Termux loyihasining `data` papkasida saqlanadi. Server ishlashi uchun Termux seansini ochiq qoldiring.
 
 2. Admin APK'ni admin telefoniga o'rnating. U serverga `http://127.0.0.1:3000/admin.html` orqali ulanadi.
 3. Mijoz telefonini admin telefoni hotspot'iga ulang va client APK'ni o'rnating. APK Wi-Fi gateway manzilini avtomatik tanlaydi. Ulanmasa, **Server** tugmasida server telefon IP manzilini `http://IP:3000` shaklida kiriting; bu IP Termux server logida ko'rsatiladi.
@@ -139,7 +152,7 @@ naqd buyurtmaning tugash muddati va kelmagan yo'lovchi uchun aloqa muddati.
 
 ## Texnik eslatmalar
 
-- Stek: Node.js, Express, SQLite (`better-sqlite3`), `qrcode`. Frontend: oddiy JavaScript (ES modullar), yig'ish (build) bosqichi yo'q.
+- Stek: Node.js, Express, ichki SQLite (`node:sqlite`), `qrcode`. Frontend: oddiy JavaScript (ES modullar), yig'ish (build) bosqichi yo'q.
 - Ikki kishi bir o'rinni sota olmaydi: ma'lumotlar bazasida faol va kutilayotgan chiptalar uchun o'rin bo'yicha noyoblik cheklovi bor.
 - Parollar `scrypt` bilan saqlanadi. Barcha SQL so'rovlar parametrlangan, frontend matnlarni xavfsiz chiqaradi.
 - Vaqt Toshkent vaqti (UTC+5) bo'yicha saqlanadi va solishtiriladi.

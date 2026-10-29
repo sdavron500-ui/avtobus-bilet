@@ -1,12 +1,53 @@
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const fs = require('fs');
 const path = require('path');
 const cfg = require('./config');
 
 fs.mkdirSync(cfg.DATA_DIR, { recursive: true });
+class Database {
+  constructor(file) {
+    this.connection = new DatabaseSync(file);
+    this.transactionDepth = 0;
+  }
+
+  exec(sql) {
+    return this.connection.exec(sql);
+  }
+
+  prepare(sql) {
+    const statement = this.connection.prepare(sql);
+    statement.setAllowBareNamedParameters(true);
+    return statement;
+  }
+
+  pragma(sql) {
+    return this.prepare(`PRAGMA ${sql}`).all();
+  }
+
+  transaction(callback) {
+    return (...args) => {
+      const depth = this.transactionDepth;
+      const savepoint = `nested_transaction_${depth}`;
+      this.exec(depth === 0 ? 'BEGIN IMMEDIATE' : `SAVEPOINT ${savepoint}`);
+      this.transactionDepth++;
+      try {
+        const result = callback(...args);
+        this.exec(depth === 0 ? 'COMMIT' : `RELEASE SAVEPOINT ${savepoint}`);
+        return result;
+      } catch (error) {
+        this.exec(depth === 0 ? 'ROLLBACK' : `ROLLBACK TO SAVEPOINT ${savepoint}`);
+        if (depth > 0) this.exec(`RELEASE SAVEPOINT ${savepoint}`);
+        throw error;
+      } finally {
+        this.transactionDepth--;
+      }
+    };
+  }
+}
+
 const db = new Database(path.join(cfg.DATA_DIR, process.env.DB_FILE || 'app.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA foreign_keys = ON');
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS cities (

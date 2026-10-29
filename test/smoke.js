@@ -14,6 +14,8 @@ const { seed } = require('../server/seed');
 const { nowLocal, addDays, addMinutes } = require('../server/util');
 const cfg = require('../server/config');
 
+assert.strictEqual(typeof require('node:sqlite').DatabaseSync, 'function', 'Node must provide built-in SQLite');
+assert.strictEqual(require('../package.json').dependencies['better-sqlite3'], undefined, 'database must not require native addon compilation');
 assert.strictEqual(cfg.HOST, '127.0.0.1', 'server should stay local unless LAN access is enabled');
 assert.strictEqual(db.prepare('SELECT COUNT(*) c FROM cities').get().c, 0, 'server start must not add demo data');
 seed();
