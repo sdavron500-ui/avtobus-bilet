@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const cfg = require('../config');
 const { db } = require('../db');
 const U = require('../util');
-const { expireStale, TRIP_SQL, tripOut, markOrderPaid } = require('./public');
+const { expireStale, TRIP_SQL, tripOut, ticketSelect, ticketOut, markOrderPaid } = require('./public');
 
 const r = express.Router();
 const { HttpError } = U;
@@ -512,39 +512,71 @@ r.post('/trips/:id/sales', (req, res) => {
     throw error;
   }
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
-  const sold = db.prepare(`SELECT k.number, k.seat_no FROM tickets k WHERE k.order_id = ?`).get(orderId);
+  const sold = db.prepare(`SELECT k.id, k.number, k.seat_no, k.fio FROM tickets k WHERE k.order_id = ?`).get(orderId);
   res.json({
-    orderId, ticketNumber: sold.number, seat, total: order.total, paymentMethod,
-    status: order.status
+    orderId, ticketId: sold.id, ticketNumber: sold.number, seat, fio: sold.fio,
+    phone: order.phone, bookedAt: order.created_at, total: order.total, paymentMethod, status: order.status
   });
 });
 
 /* buyurtmalar va chipta tekshirish */
 r.get('/orders', (req, res) => {
   expireStale();
-  const rows = db.prepare(`SELECT o.id, o.phone, o.total, o.status, o.payment_method, o.created_at,
-      t.depart_at,
+  const search = str(req.query.q, 100).trim();
+  const query = `SELECT o.id, o.trip_id, o.phone, o.total, o.status, o.payment_method, o.created_at,
+      t.depart_at, t.arrive_at,
       f.name_uz AS f_uz, f.name_ru AS f_ru, f.name_en AS f_en,
       c.name_uz AS c_uz, c.name_ru AS c_ru, c.name_en AS c_en,
-      (SELECT group_concat(seat_no) FROM tickets k WHERE k.order_id = o.id) AS seats
+      (SELECT group_concat(seat_no) FROM tickets k WHERE k.order_id = o.id) AS seats,
+      (SELECT group_concat(number) FROM tickets k WHERE k.order_id = o.id) AS ticket_numbers
     FROM orders o JOIN trips t ON t.id = o.trip_id
-    JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id
-    ORDER BY o.created_ms DESC LIMIT 150`).all();
+    JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id`;
+  const rows = search
+    ? db.prepare(`${query}
+      WHERE instr(lower(o.phone), lower(?)) > 0 OR EXISTS (
+        SELECT 1 FROM tickets k WHERE k.order_id = o.id AND
+          (instr(lower(k.fio), lower(?)) > 0 OR instr(k.number, ?) > 0))
+      ORDER BY t.depart_at DESC, o.created_ms DESC LIMIT 500`).all(search, search, search)
+    : db.prepare(`${query} ORDER BY o.created_ms DESC LIMIT 150`).all();
   res.json(rows);
+});
+r.get('/orders/:id', (req, res) => {
+  expireStale();
+  const id = str(req.params.id, 40);
+  const order = db.prepare(`SELECT o.id, o.trip_id, o.phone, o.total, o.status, o.payment_method, o.created_at,
+      o.paid_at, t.depart_at, t.arrive_at, t.platform, b.name AS bus_name, b.model AS bus_model,
+      f.name_uz AS f_uz, f.name_ru AS f_ru, f.name_en AS f_en,
+      c.name_uz AS c_uz, c.name_ru AS c_ru, c.name_en AS c_en
+    FROM orders o JOIN trips t ON t.id = o.trip_id
+    JOIN buses b ON b.id = t.bus_id
+    JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id
+    WHERE o.id = ?`).get(id);
+  if (!order) throw new HttpError(404, 'order_not_found');
+  const tickets = db.prepare(ticketSelect + ' WHERE k.order_id = ? ORDER BY k.seat_no')
+    .all(id).map(ticketOut);
+  res.json({ ...order, tickets });
 });
 r.post('/orders/:id/cash/confirm', (req, res) => {
   expireStale();
   res.json(markOrderPaid(String(req.params.id), 'cash'));
 });
 r.get('/ticket/:number', (req, res) => {
-  const number = String(req.params.number).replace(/^TICKET:/i, '').replace(/\D/g, '');
-  const k = db.prepare(`SELECT k.*, o.phone, t.depart_at, f.name_uz AS f_uz, c.name_uz AS c_uz
-    FROM tickets k JOIN orders o ON o.id = k.order_id JOIN trips t ON t.id = k.trip_id
-    JOIN cities f ON f.id = t.from_id JOIN cities c ON c.id = t.to_id WHERE k.number = ?`).get(number);
+  expireStale();
+  const identifier = str(req.params.number, 80).replace(/^TICKET:/i, '').trim();
+  const byId = /^[a-f\d]{16}$/i.test(identifier);
+  const byNumber = /^\d{10}$/.test(identifier);
+  if (!byId && !byNumber) throw new HttpError(400, 'bad_ticket_id');
+  const k = db.prepare(ticketSelect + ` WHERE ${byId ? 'k.id' : 'k.number'} = ?`).get(identifier);
   if (!k) throw new HttpError(404, 'ticket_not_found');
+  const order = db.prepare('SELECT status, payment_method, created_at, paid_at FROM orders WHERE id = ?').get(k.order_id);
   res.json({
-    number: k.number, status: k.status, fio: k.fio, seat: k.seat_no, phone: k.phone,
-    route: k.f_uz + ' → ' + k.c_uz, departAt: k.depart_at, valid: k.status === 'active'
+    id: k.id, orderId: k.order_id, number: k.number, status: k.status,
+    orderStatus: order.status, paymentMethod: order.payment_method, bookedAt: order.created_at, paidAt: order.paid_at,
+    fio: k.fio, seat: k.seat_no, phone: k.phone, route: k.f_uz + ' → ' + k.c_uz,
+    departAt: k.depart_at, arriveAt: k.arrive_at, platform: k.platform,
+    bus: k.bus_name, price: k.price, total: k.order_total,
+    valid: k.status === 'active' && order.status === 'paid' && k.trip_status === 'active',
+    cashPending: k.status === 'pending' && order.status === 'pending' && order.payment_method === 'cash'
   });
 });
 

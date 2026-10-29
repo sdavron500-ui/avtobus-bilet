@@ -14,11 +14,14 @@ const num = (v, d) => (Number.isFinite(Number(v)) && v !== undefined && v !== ''
 
 module.exports = {
   PORT: num(process.env.PORT, 3000),
+  HOST: process.env.HOST || '127.0.0.1',
   BRAND: process.env.BRAND_NAME || 'Marshrut',
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin123',
   FEE_PERCENT: num(process.env.FEE_PERCENT, 2),
   HOLD_MS: num(process.env.HOLD_MINUTES, 10) * 60 * 1000,
+  CASH_HOLD_CUTOFF_MINUTES: num(process.env.CASH_HOLD_CUTOFF_MINUTES, 60),
   RETURN_BEFORE_MIN: num(process.env.RETURN_BEFORE_MIN, 60),
+  NO_SHOW_CONTACT_HOURS: num(process.env.NO_SHOW_CONTACT_HOURS, 24),
   MAX_SEATS: num(process.env.MAX_SEATS, 5),
   DEMO: process.env.DEMO !== '0',
   DATA_DIR: path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', 'data')),

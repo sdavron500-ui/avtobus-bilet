@@ -106,6 +106,70 @@
     ['Karta to‘lovi DEMO rejimida: hisobotda tasdiqlangan karta buyurtmalari haqiqiy tushum bo‘lmasligi mumkin.',
       'Card payments are in DEMO mode: confirmed card orders in this report may not represent actual revenue.',
       'Оплата картой работает в ДЕМО-режиме: подтверждённые карточные заказы в отчёте могут не быть реальной выручкой.'],
+    ['Mahalliy shaharlar', 'Domestic cities', 'Города Узбекистана'],
+    ['Xalqaro shaharlar', 'International cities', 'Международные города'],
+    ['Barcha shaharlar', 'All cities', 'Все города'],
+    ['Xalqaro shahar nomi va davlat kodini kiriting (masalan, KZ). Keyin xalqaro qatnovni “Reyslar” bo‘limida yarating.',
+      'Enter the international city and country code (for example, KZ). Then create its trip in the Trips section.',
+      'Укажите международный город и код страны (например, KZ). Затем создайте рейс в разделе «Рейсы».'],
+    ['Xalqaro reys qo‘shish', 'Add international trip', 'Добавить международный рейс'],
+    ['Chipta tekshirish: QR skanerlang yoki ID/10 xonali chipta raqamini kiriting.',
+      'Scan the QR code or enter the ticket ID/10-digit ticket number.',
+      'Отсканируйте QR-код или введите ID/10-значный номер билета.'],
+    ['QR kodi yoki chipta ID si', 'QR code or ticket ID', 'QR-код или ID билета'],
+    ['Band qilingan vaqt', 'Reserved at', 'Время бронирования'],
+    ['Yo‘nalish', 'Route', 'Маршрут'],
+    ['Jo‘nash vaqti', 'Departure time', 'Время отправления'],
+    ['Kelish vaqti', 'Arrival time', 'Время прибытия'],
+    ['Chipta ID', 'Ticket ID', 'ID билета'],
+    ['To‘lov holati', 'Payment status', 'Статус оплаты'],
+    ['Kassada naqd pul olindi, to‘lovni tasdiqlaysizmi?', 'Cash received at the cashier. Confirm the payment?', 'Наличные получены в кассе. Подтвердить оплату?'],
+    ['Naqd to‘lov tasdiqlandi, chipta faollashtirildi', 'Cash payment confirmed and ticket activated', 'Оплата наличными подтверждена, билет активирован'],
+    ['To‘lov tasdiqlandi', 'Payment confirmed', 'Оплата подтверждена'],
+    ['Chipta faol', 'Ticket is valid', 'Билет действителен'],
+    ['Chipta faol emas', 'Ticket is not valid', 'Билет недействителен'],
+    ['Yangi jo‘nash sanasi va vaqti (YYYY-MM-DDTHH:MM):', 'New departure date and time (YYYY-MM-DDTHH:MM):', 'Новые дата и время отправления (YYYY-MM-DDTHH:MM):'],
+    ['Reys yangi sana/vaqtga ko‘chirildi, yo‘lovchilarga bildirishnoma yuborildi', 'Trip rescheduled; passengers have been notified', 'Рейс перенесён; пассажиры уведомлены'],
+    ['Avtobus chiptasi', 'Bus ticket', 'Автобусный билет'],
+    ['Chiptani chop etish', 'Print ticket', 'Распечатать билет'],
+    ['Chipta raqami', 'Ticket number', 'Номер билета'],
+    ['Chipta ID si yoki raqami noto‘g‘ri', 'Invalid ticket ID or number', 'Неверный ID или номер билета'],
+    ['Buyurtmalarni telefon, ism/familiya yoki chipta raqami orqali qidiring.',
+      'Search orders by phone, first/last name, or ticket number.',
+      'Ищите заказы по телефону, имени/фамилии или номеру билета.'],
+    ['Telefon, ism/familiya yoki chipta raqami', 'Phone, name, or ticket number', 'Телефон, имя или номер билета'],
+    ['Qidirish', 'Search', 'Поиск'],
+    ['Tozalash', 'Clear', 'Очистить'],
+    ['Buyurtmalar', 'Orders', 'Заказы'],
+    ['Buyurtma topilmadi', 'No orders found', 'Заказы не найдены'],
+    ['Buyurtma ma’lumotlari', 'Order details', 'Данные заказа'],
+    ['Chiptalarni ko‘rish', 'View tickets', 'Посмотреть билеты'],
+    ['Chiptalar', 'Tickets', 'Билеты'],
+    ['Chipta summasi', 'Ticket amount', 'Сумма за билет'],
+    ['To‘lov usuli', 'Payment method', 'Способ оплаты'],
+    ['To‘lov holati', 'Payment status', 'Статус оплаты'],
+    ['Chipta QR kodi', 'Ticket QR code', 'QR-код билета'],
+    ['QR skaner uchun maydonni faollashtirish', 'Activate scanner input', 'Активировать поле сканера'],
+    ['QR skaner ulang va chiptani skanerlang yoki ID/raqamni qo‘lda kiriting.',
+      'Connect a QR scanner and scan a ticket, or enter its ID/number manually.',
+      'Подключите QR-сканер и отсканируйте билет или введите ID/номер вручную.'],
+    ['Kamera bilan QR skanerlash', 'Scan QR with camera', 'Сканировать QR камерой'],
+    ['Kamerani o‘chirish', 'Stop camera', 'Выключить камеру'],
+    ['Kamera tanlang', 'Select camera', 'Выберите камеру'],
+    ['Kameraga ruxsat berilmadi. Brauzer sozlamalarida kameraga ruxsat bering.',
+      'Camera access was denied. Allow camera access in your browser settings.',
+      'Нет доступа к камере. Разрешите доступ в настройках браузера.'],
+    ['Kamera topilmadi', 'No camera found', 'Камера не найдена'],
+    ['Kamera ishga tushmadi', 'Could not start camera', 'Не удалось запустить камеру'],
+    ['Bu brauzer kameradan QR o‘qishni qo‘llamaydi. ID yoki chipta raqamini kiriting.',
+      'This browser cannot scan QR codes from a camera. Enter the ticket ID or number.',
+      'Этот браузер не поддерживает сканирование QR камерой. Введите ID или номер билета.'],
+    ['QR kodni kameraga ko‘rsating', 'Point the camera at the QR code', 'Наведите камеру на QR-код'],
+    ['QR kodi o‘qildi', 'QR code scanned', 'QR-код отсканирован'],
+    ['Chipta chop etish', 'Print ticket', 'Распечатать билет'],
+    ['Yo‘lovchi reysga kechikkan bo‘lsa, jo‘nashdan 24 soat ichida bog‘lanishi kerak.',
+      'If a passenger misses the bus, they must contact support within 24 hours of departure.',
+      'Если пассажир опоздал на рейс, он должен связаться с поддержкой в течение 24 часов после отправления.'],
     ['Yo‘lovchilar ro‘yxatini ko‘rish', 'View passenger list', 'Посмотреть список пассажиров'],
     ['Yo‘lovchilar', 'Passengers', 'Пассажиры'],
     ['Ism familiya', 'Full name', 'Фамилия и имя'],
@@ -169,7 +233,7 @@
   var ERR = {
     bad_credentials: "Parol noto'g'ri", unauthorized: 'Sessiya tugadi, qaytadan kiring', too_many_tries: "Urinishlar ko'p, 5 daqiqadan keyin urinib ko'ring",
     in_use: "Bu yozuv ishlatilmoqda, o'chirib bo'lmaydi", bad_time: "Vaqt noto'g'ri", same_city: 'Shaharlar bir xil', seat_taken: "O'rinda yo'lovchi bor",
-    ticket_not_found: 'Chipta topilmadi', bad_name: 'Nom kiriting', bad_price: "Narx noto'g'ri", bad_duration: "Davomiylik noto'g'ri", bad_seats: "O'rinlar soni noto'g'ri",
+    ticket_not_found: 'Chipta topilmadi', bad_ticket_id: 'Chipta ID si yoki raqami noto‘g‘ri', cash_cutoff: 'Jo‘nashga bir soatdan kam qolganda naqd buyurtma qabul qilinmaydi', bad_name: "Nom kiriting", bad_price: "Narx noto'g'ri", bad_duration: "Davomiylik noto'g'ri", bad_seats: "O'rinlar soni noto'g'ri",
     bad_city: 'Shaharni tanlang', bad_bus: 'Avtobusni tanlang', bad_seat: "O'rin noto'g'ri",
     bad_reason: 'Bekor qilish yoki ko‘chirish sababini kamida 3 ta belgi bilan kiriting',
     trip_not_found: 'Reys topilmadi', trip_not_active: 'Bu reys faol emas',
@@ -226,6 +290,7 @@
   var TABS = [['dash', 'Boshqaruv'], ['trips', 'Reyslar'], ['sched', 'Jadvallar'], ['buses', 'Avtobuslar'], ['cities', 'Shaharlar'], ['orders', 'Buyurtmalar'], ['sales', 'Sotuv'], ['reports', 'Hisobot'], ['check', 'Chipta tekshirish']];
   var cache = { cities: [], buses: [] };
   var cur = 'dash';
+  var stopActiveCamera = function () {};
   function renderTabs() {
     $('#tabs').innerHTML = TABS.map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (t[0] === cur ? ' aria-current="page"' : '') + '>' + tr(t[1]) + '</button>'; }).join('');
   }
@@ -237,6 +302,7 @@
     Promise.all([api('GET', '/cities'), api('GET', '/buses')]).then(function (r) { cache.cities = r[0]; cache.buses = r[1]; go(cur); }).catch(fail);
   }
   function go(tab) {
+    stopActiveCamera();
     cur = tab; renderTabs();
     main.innerHTML = '<div class="spin"></div>';
     ({ dash: dash, trips: trips, sched: sched, buses: buses, cities: cities, orders: orders, sales: sales, reports: reports, check: check })[tab]()
@@ -262,7 +328,7 @@
   }
 
   /* ---------- reyslar ---------- */
-  var tripDate = '', tripArchive = false;
+  var tripDate = '', tripArchive = false, tripFormOpen = false;
   function trips() {
     var query = new URLSearchParams();
     if (tripDate) query.set('date', tripDate);
@@ -270,7 +336,7 @@
     return api('GET', '/trips' + (query.toString() ? '?' + query : '')).then(function (list) {
       main.innerHTML = '<h1>' + (tripArchive ? 'Reyslar tarixi va arxiv' : 'Reyslar') + '</h1>' +
         '<div class="row" style="margin-bottom:12px"><button class="btn ' + (!tripArchive ? 'btn-lime' : 'btn-ghost') + ' sm" id="activeTrips" type="button">Faol reyslar</button><button class="btn ' + (tripArchive ? 'btn-lime' : 'btn-ghost') + ' sm" id="archivedTrips" type="button">Tarix / arxiv</button></div>' +
-        (!tripArchive ? '<details class="card"><summary style="font-weight:800;cursor:pointer">+ Yagona reys qo\'shish</summary><form id="nt" class="stack" style="margin-top:14px"><div class="row">' +
+        (!tripArchive ? '<details class="card"' + (tripFormOpen ? ' open' : '') + '><summary style="font-weight:800;cursor:pointer">+ Yagona reys qo\'shish</summary><form id="nt" class="stack" style="margin-top:14px"><div class="row">' +
         fld('Qayerdan', '<select class="inp s" name="from_id">' + cityOpts() + '</select>') + fld('Qayerga', '<select class="inp s" name="to_id">' + cityOpts(cache.cities[1] && cache.cities[1].id) + '</select>') +
         fld('Jo\'nash', '<input class="inp s" type="datetime-local" name="depart_at" required>') + fld('Davomiyligi (daq.)', '<input class="inp s" type="number" name="duration_min" min="10" value="240">') +
         fld('Narx (so\'m)', '<input class="inp s" type="number" name="price" min="1000" step="1000" value="100000">') + fld('Avtobus', '<select class="inp s" name="bus_id">' + busOpts() + '</select>') +
@@ -287,7 +353,7 @@
             '<td>' + t.free + ' / ' + t.total + (t.bookedCount ? '<div class="hint">' + t.bookedCount + ' chipta</div>' : '') + '</td><td><span class="pill ' + (active ? 'ok' : 'cancel') + '">' + state + '</span></td>' +
             '<td style="white-space:nowrap">' +
             (t.bookedCount ? '<button class="btn btn-ghost xs" data-a="move">Yo\'lovchilarni ko\'chirish</button> ' : '') +
-            (active ? '<button class="btn btn-ghost xs" data-a="seats">O\'rinlar</button> <button class="btn btn-ghost xs" data-a="save">Saqlash</button> <button class="btn btn-ghost xs" data-a="reschedule">Sana/vaqt</button> <button class="btn btn-ghost xs" data-a="cancel">Bekor qilish</button> <button class="btn btn-danger xs" data-a="delete">O\'chirish</button>' : '') +
+            (active ? '<button class="btn btn-ghost xs" data-a="seats">O\'rinlar</button> <button class="btn btn-ghost xs" data-a="save">Saqlash</button> <button class="btn btn-ghost xs" data-a="reschedule">Reysni ko‘chirish</button> <button class="btn btn-ghost xs" data-a="cancel">Bekor qilish</button> <button class="btn btn-danger xs" data-a="delete">O\'chirish</button>' : '') +
             '</td></tr>';
         }).join('') : '<tr><td colspan="8" class="muted">Reyslar topilmadi</td></tr>') + '</tbody></table></div><div id="seatpanel"></div>';
 
@@ -298,20 +364,20 @@
       if (!tripArchive) $('#nt').addEventListener('submit', function (e) {
         e.preventDefault(); var f = e.target, v = {};
         ['from_id', 'to_id', 'depart_at', 'duration_min', 'price', 'bus_id', 'platform'].forEach(function (k) { v[k] = f[k].value; });
-        api('POST', '/trips', v).then(function () { toast("Reys qo'shildi", 'ok'); go('trips'); }).catch(fail);
+      api('POST', '/trips', v).then(function () { tripFormOpen = false; toast("Reys qo'shildi", 'ok'); go('trips'); }).catch(fail);
       });
       main.querySelector('tbody').addEventListener('click', function (e) {
         var b = e.target.closest('[data-a]'); if (!b) return;
-        var tr = b.closest('tr'), id = tr.dataset.id;
+        var row = b.closest('tr'), id = row.dataset.id;
         if (b.dataset.a === 'seats') { openSeats(id); return; }
         if (b.dataset.a === 'move') { openMoves(id); return; }
         if (b.dataset.a === 'reschedule') {
-          var newTime = prompt("Yangi jo'nash sanasi va vaqti (YYYY-MM-DDTHH:MM):", tr.querySelector('td b').textContent.replace(' ', 'T'));
+          var newTime = prompt(tr("Yangi jo‘nash sanasi va vaqti (YYYY-MM-DDTHH:MM):"), row.querySelector('td b').textContent.replace(' ', 'T'));
           if (!newTime) return;
           var reason = prompt("Yo'lovchilarga ko'rsatiladigan sabab:", '');
           if (!reason) return;
           api('PUT', '/trips/' + id + '/reschedule', { depart_at: newTime, reason: reason }).then(function () {
-            toast("Reys vaqti o'zgartirildi, yo'lovchilarga bildirishnoma yuborildi", 'ok'); go('trips');
+            toast(tr("Reys yangi sana/vaqtga ko'chirildi, yo'lovchilarga bildirishnoma yuborildi"), 'ok'); go('trips');
           }).catch(fail);
           return;
         }
@@ -329,7 +395,7 @@
           api('DELETE', '/trips/' + id).then(function () { toast('Reys arxivga olindi', 'ok'); go('trips'); }).catch(fail);
           return;
         }
-        var price = tr.querySelector('[data-f=price]').value, plat = tr.querySelector('[data-f=platform]').value;
+        var price = row.querySelector('[data-f=price]').value, plat = row.querySelector('[data-f=platform]').value;
         api('PUT', '/trips/' + id, { price: price, platform: plat }).then(function () { toast('Saqlandi', 'ok'); go('trips'); }).catch(fail);
       });
     });
@@ -481,6 +547,7 @@
   }
 
   /* ---------- shaharlar ---------- */
+  var cityScope = 'all';
   function cities() {
     return api('GET', '/cities').then(function (list) {
       cache.cities = list;
@@ -488,14 +555,44 @@
         '<form id="nc" class="card stack"><h2>Yangi shahar</h2><div class="row">' + fld("O'zbekcha", '<input class="inp s" name="name_uz" required maxlength="60">') + fld('Ruscha', '<input class="inp s" name="name_ru" maxlength="60">') +
         fld('Inglizcha', '<input class="inp s" name="name_en" maxlength="60">') + fld('Davlat kodi', '<input class="inp s" name="country" value="UZ" maxlength="2" style="text-transform:uppercase">') +
         '<button class="btn sm btn-lime" type="submit">Qo\'shish</button></div><p class="hint" style="margin:0">Davlat kodi UZ bo\'lmasa, reys "Xalqaro" hisoblanadi va yo\'lovchidan pasport so\'raladi.</p></form>' +
-        '<div class="card scroll"><table class="tbl"><thead><tr><th>#</th><th>O\'zbekcha</th><th>Ruscha</th><th>Inglizcha</th><th>Davlat</th><th></th></tr></thead><tbody>' +
-        list.map(function (c) { return '<tr data-id="' + c.id + '"><td>' + c.id + '</td><td>' + esc(c.name_uz) + '</td><td>' + esc(c.name_ru) + '</td><td>' + esc(c.name_en) + '</td><td>' + esc(c.country) + '</td><td><button class="btn btn-danger xs">O\'chirish</button></td></tr>'; }).join('') + '</tbody></table></div>';
+        '<p class="hint"><span>Xalqaro shahar nomi va davlat kodini kiriting (masalan, KZ). Keyin xalqaro qatnovni “Reyslar” bo‘limida yarating.</span> ' +
+        '<button class="btn btn-ghost xs" type="button" id="addInternationalTrip">Xalqaro reys qo‘shish</button></p>' +
+        '<div class="row city-scopes" role="group">' +
+        '<button class="btn btn-ghost sm" type="button" data-city-scope="all">Barcha shaharlar</button>' +
+        '<button class="btn btn-ghost sm" type="button" data-city-scope="local">Mahalliy shaharlar</button>' +
+        '<button class="btn btn-ghost sm" type="button" data-city-scope="international">Xalqaro shaharlar</button></div>' +
+        '<div id="cityRows" class="card scroll"></div>';
+      function renderCityRows() {
+        var visible = list.filter(function (city) {
+          return cityScope === 'all' || (cityScope === 'local' ? city.country === 'UZ' : city.country !== 'UZ');
+        });
+        $('#cityRows').innerHTML = '<table class="tbl"><thead><tr><th>#</th><th>O\'zbekcha</th><th>Ruscha</th><th>Inglizcha</th><th>Davlat</th><th></th></tr></thead><tbody>' +
+          (visible.length ? visible.map(function (c) {
+            return '<tr data-id="' + c.id + '"><td>' + c.id + '</td><td>' + esc(c.name_uz) + '</td><td>' + esc(c.name_ru) + '</td><td>' + esc(c.name_en) + '</td><td>' + esc(c.country) + '</td><td><button class="btn btn-danger xs">O\'chirish</button></td></tr>';
+          }).join('') : '<tr><td colspan="6" class="muted">Shaharlar topilmadi</td></tr>') + '</tbody></table>';
+        localize($('#cityRows'));
+      }
+      renderCityRows();
+      main.querySelectorAll('[data-city-scope]').forEach(function (button) {
+        button.classList.toggle('btn-lime', button.dataset.cityScope === cityScope);
+        button.addEventListener('click', function () {
+          cityScope = button.dataset.cityScope;
+          var countryInput = $('#nc').elements.country;
+          if (cityScope === 'international' && countryInput.value.toUpperCase() === 'UZ') countryInput.value = 'KZ';
+          if (cityScope === 'local') countryInput.value = 'UZ';
+          main.querySelectorAll('[data-city-scope]').forEach(function (item) {
+            item.classList.toggle('btn-lime', item.dataset.cityScope === cityScope);
+          });
+          renderCityRows();
+        });
+      });
+      $('#addInternationalTrip').addEventListener('click', function () { tripFormOpen = true; go('trips'); });
       $('#nc').addEventListener('submit', function (e) {
         e.preventDefault(); var f = e.target, v = {};
         ['name_uz', 'name_ru', 'name_en', 'country'].forEach(function (k) { v[k] = f[k].value; });
         api('POST', '/cities', v).then(function () { toast("Shahar qo'shildi", 'ok'); go('cities'); }).catch(fail);
       });
-      main.querySelector('tbody').addEventListener('click', function (e) {
+      $('#cityRows').addEventListener('click', function (e) {
         var b = e.target.closest('button'); if (!b || !confirm("Shahar o'chirilsinmi?")) return;
         api('DELETE', '/cities/' + b.closest('tr').dataset.id).then(function () { go('cities'); }).catch(fail);
       });
@@ -528,7 +625,7 @@
         '<div id="intlFields" class="row" hidden>' +
         fld('Pasport (AA1234567)', '<input class="inp s" name="passport" maxlength="9">') +
         fld('Tug‘ilgan sana', '<input class="inp s" type="date" name="birth">') + '</div>' +
-        '</div><button class="btn btn-lime sm" type="submit">Chiptani rasmiylashtirish</button><div id="saleResult" aria-live="polite"></div></form>';
+        '</div><button class="btn btn-lime sm" type="submit">Chiptani rasmiylashtirish</button></form><div id="saleResult" aria-live="polite"></div>';
       var form = $('#saleForm');
       var seatSelect = form.elements.seat;
       function updateAmount() {
@@ -574,13 +671,26 @@
           gender: form.elements.gender.value, paymentMethod: form.elements.paymentMethod.value,
           passport: form.elements.passport.value, birth: form.elements.birth.value
         }).then(function (result) {
-          $('#saleResult').innerHTML = '<div class="note" style="margin-top:14px">Qabul qilindi · ' +
-            'Buyurtma: <b>' + esc(result.orderId) + '</b> · Chipta: <b>' + esc(result.ticketNumber) +
-            '</b> · O‘rin: <b>' + result.seat + '</b> · Summa: <b>' + money(result.total) + '</b></div>';
+          var trip = list.find(function (item) { return String(item.id) === form.elements.tripId.value; });
+          $('#saleResult').innerHTML = '<article class="cash-ticket-print card"><div><h2>Avtobus chiptasi</h2>' +
+            '<p><b>Chipta ID:</b> ' + esc(result.ticketId) + '</p><p><b>Chipta raqami:</b> ' + esc(result.ticketNumber) + '</p>' +
+            '<p><b>Yo‘lovchi:</b> ' + esc(result.fio) + '</p><p><b>Telefon:</b> ' + esc(result.phone) + '</p>' +
+            '<p><b>Yo‘nalish:</b> ' + esc(cityName(trip.from)) + ' → ' + esc(cityName(trip.to)) + '</p>' +
+            '<p><b>Jo‘nash:</b> ' + esc(trip.departAt) + '</p><p><b>O‘rin:</b> ' + result.seat + '</p>' +
+            '<p><b>To‘lov usuli:</b> ' + tr(result.paymentMethod === 'cash' ? 'Naqd pul' : 'Bank kartasi') + '</p>' +
+            '<p><b>Band qilingan vaqt:</b> ' + esc(result.bookedAt) + '</p><p><b>Summa:</b> ' + money(result.total) + '</p>' +
+            '<p><b>Buyurtma:</b> ' + esc(result.orderId) + '</p></div><img src="/api/tickets/' +
+            encodeURIComponent(result.ticketId) + '/qr.svg" alt="Chipta QR kodi" width="180" height="180">' +
+            '<button class="btn btn-lime sm no-print" id="printCashTicket" type="button">Chiptani chop etish</button></article>';
           form.elements.fio.value = '';
           form.elements.phone.value = '';
           toast('Chipta rasmiylashtirildi', 'ok');
           localize($('#saleResult'));
+          $('#printCashTicket').addEventListener('click', function () {
+            document.body.classList.add('cash-ticket-printing');
+            window.addEventListener('afterprint', function () { document.body.classList.remove('cash-ticket-printing'); }, { once: true });
+            window.print();
+          });
           form.elements.tripId.dispatchEvent(new Event('change'));
           submit.disabled = false;
         }).catch(function (error) { submit.disabled = false; fail(error); });
@@ -744,47 +854,296 @@
   }
 
   /* ---------- buyurtmalar ---------- */
+  function printAdminTicket(card) {
+    var host = document.createElement('div');
+    host.id = 'adminPrintHost';
+    host.innerHTML = card.outerHTML;
+    host.querySelectorAll('.no-print').forEach(function (element) { element.remove(); });
+    document.body.appendChild(host);
+    var images = Array.from(host.querySelectorAll('img'));
+    Promise.all(images.map(function (image) {
+      if (image.complete) return Promise.resolve();
+      return new Promise(function (resolve) {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    })).then(function () {
+      document.body.classList.add('admin-ticket-printing');
+      var cleanup = function () {
+        document.body.classList.remove('admin-ticket-printing');
+        host.remove();
+      };
+      window.addEventListener('afterprint', cleanup, { once: true });
+      window.print();
+    });
+  }
+
   var STATUS = { paid: ["To'langan", 'ok'], pending: ['Kutilmoqda', 'low'], expired: ['Muddati tugagan', ''], returned: ['Qaytarilgan', 'cancel'] };
   function orders() {
-    return api('GET', '/orders').then(function (list) {
-      main.innerHTML = '<h1>Buyurtmalar</h1><div class="card scroll"><table class="tbl"><thead><tr><th>Sana</th><th>Yo\'nalish</th><th>Jo\'nash</th><th>O\'rinlar</th><th>Telefon</th><th>Summa</th><th>To\'lov usuli</th><th>Holat</th><th></th></tr></thead><tbody>' +
-        (list.length ? list.map(function (o) {
-          var st = o.status === 'pending' && o.payment_method === 'cash' ? ['Kassada to‘lanadi', 'low'] : (STATUS[o.status] || [o.status, '']);
-          var method = o.payment_method === 'cash' ? 'Naqd pul' : 'Bank kartasi';
-          var action = o.status === 'pending' && o.payment_method === 'cash'
-            ? '<button class="btn btn-lime xs" data-cash-paid="' + esc(o.id) + '">Naqd pul olindi</button>'
-            : '';
-          return '<tr><td>' + esc(o.created_at) + '</td><td>' + esc(o['f_' + LANG] || o.f_uz) + ' → ' + esc(o['c_' + LANG] || o.c_uz) + '</td><td>' + esc(o.depart_at) + '</td><td>' + esc(o.seats) + '</td><td>' + esc(o.phone) + '</td><td>' + money(o.total) + '</td><td>' + method + '</td><td><span class="pill ' + st[1] + '">' + st[0] + '</span></td><td>' + action + '</td></tr>';
-        }).join('') : '<tr><td colspan="9" class="muted">Buyurtmalar hali yo\'q</td></tr>') + '</tbody></table></div>';
-      main.querySelector('tbody').addEventListener('click', function (e) {
-        var button = e.target.closest('[data-cash-paid]');
-        if (!button) return;
-        var order = list.find(function (item) { return item.id === button.dataset.cashPaid; });
-        if (!order || !confirm("Mijozdan " + money(order.total) + " naqd pulni oldingizmi? Tasdiqlangandan so'ng chiptalar faol bo'ladi.")) return;
+    main.innerHTML = '<h1>Buyurtmalar</h1><p class="muted">' +
+      tr('Buyurtmalarni telefon, ism/familiya yoki chipta raqami orqali qidiring.') +
+      '</p><form id="orderSearch" class="row card stack"><input class="inp s" id="orderQuery" autocomplete="off" placeholder="' +
+      esc(tr('Telefon, ism/familiya yoki chipta raqami')) + '"><button class="btn btn-lime sm" type="submit">' +
+      tr('Qidirish') + '</button><button class="btn btn-ghost sm" id="orderClear" type="button">' + tr('Tozalash') +
+      '</button></form><div id="orderGroups" aria-live="polite"></div>';
+    var list = [];
+    function renderOrders() {
+      var groups = new Map();
+      list.forEach(function (order) {
+        var key = String(order.trip_id);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(order);
+      });
+      $('#orderGroups').innerHTML = groups.size ? Array.from(groups.entries()).map(function (entry, groupIndex) {
+        var tripOrders = entry[1], first = tripOrders[0];
+        var route = (first['f_' + LANG] || first.f_uz) + ' → ' + (first['c_' + LANG] || first.c_uz);
+        return '<details class="order-trip-group"' + (groupIndex === 0 ? ' open' : '') + '><summary><b>' +
+          esc(route) + '</b><span>' + esc(first.depart_at) + ' · ' + tripOrders.length + ' ' + tr('Buyurtmalar') +
+          '</span></summary><div class="card scroll"><table class="tbl"><thead><tr><th>' + tr('Sana') +
+          '</th><th>' + tr('Chipta raqami') + '</th><th>' + tr('O‘rinlar') + '</th><th>' + tr('Telefon') +
+          '</th><th>' + tr('Summa') + '</th><th>' + tr('To‘lov usuli') + '</th><th>' + tr('Holat') +
+          '</th><th></th></tr></thead><tbody>' + tripOrders.map(function (o) {
+            var st = o.status === 'pending' && o.payment_method === 'cash'
+              ? ['Kassada to‘lanadi', 'low'] : (STATUS[o.status] || [o.status, '']);
+            var method = tr(o.payment_method === 'cash' ? 'Naqd pul' : 'Bank kartasi');
+            var action = o.status === 'pending' && o.payment_method === 'cash'
+              ? '<button class="btn btn-lime xs" data-cash-paid="' + esc(o.id) + '">' + tr('Naqd pul olindi') + '</button>'
+              : '';
+            return '<tr><td>' + esc(o.created_at) + '</td><td>' + esc(o.ticket_numbers || '—') + '</td><td>' +
+              esc(o.seats || '—') + '</td><td>' + esc(o.phone) + '</td><td>' + money(o.total) + '</td><td>' +
+              method + '</td><td><span class="pill ' + st[1] + '">' + tr(st[0]) + '</span></td><td>' +
+              '<button class="btn btn-ghost xs" data-order-view="' + esc(o.id) + '">' + tr('Chiptalarni ko‘rish') +
+              '</button> ' + action + '</td></tr><tr class="order-detail-row" data-order-detail="' + esc(o.id) +
+              '" hidden><td colspan="8"></td></tr>';
+          }).join('') + '</tbody></table></div></details>';
+      }).join('') : '<div class="card muted">' + tr('Buyurtma topilmadi') + '</div>';
+      localize($('#orderGroups'));
+    }
+    function loadOrders(search) {
+      return api('GET', '/orders' + (search ? '?q=' + encodeURIComponent(search) : '')).then(function (ordersList) {
+        list = ordersList;
+        renderOrders();
+      });
+    }
+    $('#orderSearch').addEventListener('submit', function (event) {
+      event.preventDefault();
+      loadOrders($('#orderQuery').value.trim()).catch(fail);
+    });
+    $('#orderClear').addEventListener('click', function () {
+      $('#orderQuery').value = '';
+      loadOrders('').catch(fail);
+    });
+    $('#orderGroups').addEventListener('click', function (event) {
+      var button = event.target.closest('button');
+      if (!button) return;
+      if (button.dataset.orderView) {
+        var detailRow = Array.from($('#orderGroups').querySelectorAll('[data-order-detail]')).find(function (row) {
+          return row.dataset.orderDetail === button.dataset.orderView;
+        });
+        if (!detailRow.hidden) { detailRow.hidden = true; return; }
+        button.disabled = true;
+        api('GET', '/orders/' + encodeURIComponent(button.dataset.orderView)).then(function (order) {
+          detailRow.querySelector('td').innerHTML = '<div class="order-ticket-list"><h3>' +
+            tr('Buyurtma ma’lumotlari') + ' · ' + esc(order.phone) + '</h3>' + order.tickets.map(function (ticket) {
+              return '<article class="order-ticket-card ticket-scan-result"><div class="order-ticket-info">' +
+                '<h3>' + tr('Chipta') + ' ' + esc(ticket.number) + '</h3><div class="ticket-scan-grid">' +
+                '<div><span>Chipta ID</span><b>' + esc(ticket.id) + '</b></div>' +
+                '<div><span>Yo‘lovchi</span><b>' + esc(ticket.fio) + '</b></div>' +
+                '<div><span>Telefon</span><b>' + esc(ticket.phone) + '</b></div>' +
+                '<div><span>O‘rin</span><b>' + ticket.seat + '</b></div>' +
+                '<div><span>Yo‘nalish</span><b>' + esc((ticket.from[LANG] || ticket.from.uz) +
+                  ' → ' + (ticket.to[LANG] || ticket.to.uz)) + '</b></div>' +
+                '<div><span>Jo‘nash vaqti</span><b>' + esc(ticket.departAt) + '</b></div>' +
+                '<div><span>To‘lov usuli</span><b>' +
+                  tr(ticket.paymentMethod === 'cash' ? 'Naqd pul' : 'Bank kartasi') + '</b></div>' +
+                '<div><span>To‘lov holati</span><b>' + tr(ticket.status === 'active' ? 'To‘langan' :
+                  ticket.status === 'pending' ? 'Kutilmoqda' : ticket.status) + '</b></div>' +
+                '<div><span>Summa</span><b>' + money(ticket.price) + '</b></div></div></div>' +
+                '<img class="order-ticket-qr" src="/api/tickets/' + encodeURIComponent(ticket.id) +
+                  '/qr.svg" alt="' + tr('Chipta QR kodi') + '">' +
+                '<button class="btn btn-ghost sm no-print" type="button" data-print-ticket>' +
+                tr('Chipta chop etish') + '</button></article>';
+            }).join('') + '</div>';
+          detailRow.hidden = false;
+          button.disabled = false;
+          localize(detailRow);
+        }).catch(function (error) {
+          button.disabled = false;
+          fail(error);
+        });
+        return;
+      }
+      if (button.hasAttribute('data-print-ticket')) {
+        printAdminTicket(button.closest('.order-ticket-card'));
+        return;
+      }
+      if (button.dataset.cashPaid) {
+        var cashOrder = list.find(function (item) { return item.id === button.dataset.cashPaid; });
+        if (!cashOrder || !confirm("Mijozdan " + money(cashOrder.total) + " naqd pulni oldingizmi? Tasdiqlangandan so'ng chiptalar faol bo'ladi.")) return;
         button.disabled = true;
         api('POST', '/orders/' + encodeURIComponent(button.dataset.cashPaid) + '/cash/confirm').then(function () {
           toast("Naqd to'lov tasdiqlandi, chiptalar faollashtirildi", 'ok');
-          go('orders');
-        }).catch(function (err) {
+          return loadOrders($('#orderQuery').value.trim());
+        }).catch(function (error) {
           button.disabled = false;
-          fail(err);
+          fail(error);
         });
-      });
+      }
     });
+    return loadOrders('');
   }
 
   /* ---------- chipta tekshirish (nazoratchi) ---------- */
   function check() {
-    main.innerHTML = '<h1>Chipta tekshirish</h1><form id="cf" class="card stack" style="max-width:520px"><p class="muted" style="margin:0">QR-kod ostidagi 10 xonali chipta raqamini kiriting (yoki QR skaner matnini qo\'ying).</p>' +
-      fld('Chipta raqami', '<input class="inp" id="cn" inputmode="numeric" autofocus placeholder="0123456789">') + '<button class="btn btn-lime" type="submit">Tekshirish</button><div id="cr"></div></form>';
+    main.innerHTML = '<h1>Chipta tekshirish</h1><form id="cf" class="card stack" style="max-width:760px"><p class="muted" style="margin:0">' +
+      tr('QR skaner ulang va chiptani skanerlang yoki ID/raqamni qo‘lda kiriting.') + '</p>' +
+      fld('QR kodi yoki chipta ID si', '<input class="inp" id="cn" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus placeholder="TICKET:… yoki 10 xonali raqam">') +
+      '<div class="row"><button class="btn btn-ghost sm" id="activateScanner" type="button">' +
+      tr('QR skaner uchun maydonni faollashtirish') + '</button>' +
+      '<button class="btn btn-lime" type="submit">Tekshirish</button>' +
+      '<button class="btn btn-ghost" id="startCamera" type="button">' + tr('Kamera bilan QR skanerlash') + '</button>' +
+      '<button class="btn btn-ghost" id="stopCamera" type="button" disabled>' + tr('Kamerani o‘chirish') +
+      '</button><label class="field camera-select" for="cameraSelect">' + tr('Kamera tanlang') +
+      '<select class="inp s" id="cameraSelect" hidden></select></label></div></form>' +
+      '<section class="card camera-panel" id="cameraPanel" hidden><video id="cameraPreview" playsinline muted></video>' +
+      '<p id="cameraStatus" class="muted" role="status"></p></section><div id="cr" aria-live="polite"></div>';
+    var cameraControls = null;
+    function stopCamera() {
+      if (cameraControls) cameraControls.stop();
+      cameraControls = null;
+      var startButton = $('#startCamera'), stopButton = $('#stopCamera');
+      if (startButton) startButton.disabled = false;
+      if (stopButton) stopButton.disabled = true;
+    }
+    stopActiveCamera = stopCamera;
+    function scanTicket(identifier) {
+      return api('GET', '/ticket/' + encodeURIComponent(identifier)).then(function (ticket) {
+        var method = tr(ticket.paymentMethod === 'cash' ? 'Naqd pul' : 'Bank kartasi');
+        var state = ticket.valid ? tr('Chipta faol') : ticket.cashPending ? tr('Kassada to‘lanadi') :
+          ticket.orderStatus === 'paid' && ticket.status === 'returned' ? tr('Qaytarilgan') : tr('Chipta faol emas');
+        $('#cr').innerHTML = '<div class="card ticket-scan-result' + (ticket.valid ? ' ticket-scan-valid' : ' ticket-scan-pending') + '">' +
+          '<h2>' + esc(state) + '</h2><div class="ticket-scan-grid">' +
+          '<div><span>Chipta ID</span><b>' + esc(ticket.id) + '</b></div>' +
+          '<div><span>Chipta raqami</span><b>' + esc(ticket.number) + '</b></div>' +
+          '<div><span>Yo‘lovchi</span><b>' + esc(ticket.fio) + '</b></div>' +
+          '<div><span>Telefon raqami</span><b>' + esc(ticket.phone) + '</b></div>' +
+          '<div><span>Yo‘nalish</span><b>' + esc(ticket.route) + '</b></div>' +
+          '<div><span>Band qilingan vaqt</span><b>' + esc(ticket.bookedAt) + '</b></div>' +
+          '<div><span>Jo‘nash vaqti</span><b>' + esc(ticket.departAt) + '</b></div>' +
+          '<div><span>Kelish vaqti</span><b>' + esc(ticket.arriveAt) + '</b></div>' +
+          '<div><span>O‘rin</span><b>' + ticket.seat + '</b></div>' +
+          '<div><span>To‘lov usuli</span><b>' + esc(method) + '</b></div>' +
+          '<div><span>To‘lov holati</span><b>' + esc(ticket.paymentMethod === 'cash' && ticket.orderStatus === 'pending' ? tr('Kutilmoqda') : ticket.orderStatus === 'paid' ? tr('To‘lov tasdiqlandi') : tr('Chipta faol emas')) + '</b></div>' +
+          '<div><span>Chipta summasi</span><b>' + money(ticket.price) + '</b></div></div>' +
+          '<img class="order-ticket-qr" src="/api/tickets/' + encodeURIComponent(ticket.id) +
+            '/qr.svg" alt="' + tr('Chipta QR kodi') + '">' +
+          '<button class="btn btn-ghost sm no-print" type="button" data-print-ticket>' + tr('Chipta chop etish') + '</button>' +
+          (ticket.cashPending ? '<button class="btn btn-lime sm no-print" type="button" data-scan-confirm="' + esc(ticket.orderId) + '">Naqd pul olindi</button>' : '') +
+          '</div>';
+        localize($('#cr'));
+      });
+    }
     $('#cf').addEventListener('submit', function (e) {
       e.preventDefault();
-      var n = $('#cn').value.trim();
+      var n = normalizeTicketInput($('#cn').value);
       if (!n) return;
-      api('GET', '/ticket/' + encodeURIComponent(n)).then(function (t) {
-        $('#cr').innerHTML = '<div class="note' + (t.valid ? '' : ' warn') + '" style="margin-top:6px"><b>' + (t.valid ? 'YAROQLI' : (t.status === 'returned' ? 'QAYTARILGAN, yaroqsiz' : 'Yaroqsiz (' + esc(t.status) + ')')) + '</b><br>' +
-          esc(t.fio) + ', ' + t.seat + '-o\'rin<br>' + esc(t.route) + ', ' + esc(t.departAt) + '<br>' + esc(t.phone) + '</div>';
-      }).catch(function (err) { $('#cr').innerHTML = '<div class="note warn" style="margin-top:6px"><b>' + (ERR[err.code] || 'Xatolik') + '</b></div>'; });
+      scanTicket(n).catch(function (err) {
+        $('#cr').innerHTML = '<div class="note warn" style="margin-top:6px"><b>' + esc(tr(ERR[err.code] || 'Xatolik')) + '</b></div>';
+      });
+    });
+    function normalizeTicketInput(value) {
+      var input = String(value || '').trim();
+      if (/^https?:\/\//i.test(input)) {
+        try {
+          var pathMatch = new URL(input).pathname.match(/\/ticket\/([^/]+)\/?$/i);
+          if (pathMatch) input = decodeURIComponent(pathMatch[1]);
+        } catch (error) { /* Unrecognized scanner text remains available for lookup. */ }
+      }
+      return input.replace(/^TICKET:/i, '').trim();
+    }
+    async function startCamera() {
+      stopCamera();
+      var scanner = window.ZXingBrowser;
+      var status = $('#cameraStatus');
+      $('#cameraPanel').hidden = false;
+      if (!scanner || !scanner.BrowserQRCodeReader) {
+        status.textContent = tr('Bu brauzer kameradan QR o‘qishni qo‘llamaydi. ID yoki chipta raqamini kiriting.');
+        return;
+      }
+      $('#startCamera').disabled = true;
+      status.textContent = tr('QR kodni kameraga ko‘rsating');
+      try {
+        var devices = await scanner.BrowserCodeReader.listVideoInputDevices();
+        if (!devices.length) throw new DOMException('No camera found', 'NotFoundError');
+        var select = $('#cameraSelect');
+        select.innerHTML = devices.map(function (device, index) {
+          return '<option value="' + esc(device.deviceId) + '">' +
+            esc(device.label || (tr('Kamera tanlang') + ' ' + (index + 1))) + '</option>';
+        }).join('');
+        select.hidden = devices.length < 2;
+        if (select.hidden) select.value = devices[0].deviceId;
+        var reader = new scanner.BrowserQRCodeReader();
+        var video = $('#cameraPreview');
+        cameraControls = await reader.decodeFromVideoDevice(select.value || undefined, video,
+          function (result, error, controls) {
+            if (controls) cameraControls = controls;
+            if (!result) return;
+            var input = $('#cn');
+            input.value = result.getText();
+            stopCamera();
+            $('#cameraStatus').textContent = tr('QR kodi o‘qildi');
+            $('#cf').requestSubmit();
+          });
+        $('#stopCamera').disabled = false;
+        status.textContent = tr('QR kodni kameraga ko‘rsating');
+      } catch (error) {
+        stopCamera();
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          status.textContent = tr('Kameraga ruxsat berilmadi. Brauzer sozlamalarida kameraga ruxsat bering.');
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          status.textContent = tr('Kamera topilmadi');
+        } else if (error.name === 'NotSupportedError' || !navigator.mediaDevices) {
+          status.textContent = tr('Bu brauzer kameradan QR o‘qishni qo‘llamaydi. ID yoki chipta raqamini kiriting.');
+        } else {
+          status.textContent = tr('Kamera ishga tushmadi') + ': ' + (error.message || error.name);
+          console.error('QR camera scan failed', error);
+        }
+      }
+    }
+    $('#startCamera').addEventListener('click', startCamera);
+    $('#stopCamera').addEventListener('click', function () {
+      stopCamera();
+      $('#cameraStatus').textContent = '';
+    });
+    $('#cameraSelect').addEventListener('change', startCamera);
+    $('#activateScanner').addEventListener('click', function () { $('#cn').focus(); });
+    $('#cn').addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        $('#cf').requestSubmit();
+      }
+    });
+    $('#cn').addEventListener('paste', function () {
+      setTimeout(function () { if ($('#cn').value.trim()) $('#cf').requestSubmit(); }, 0);
+    });
+    setTimeout(function () { $('#cn').focus(); }, 0);
+    $('#cr').addEventListener('click', function (event) {
+      var button = event.target.closest('[data-scan-confirm]');
+      var printButton = event.target.closest('[data-print-ticket]');
+      if (printButton) {
+        printAdminTicket(printButton.closest('.ticket-scan-result'));
+        return;
+      }
+      if (!button || !confirm(tr('Kassada naqd pul olindi, to‘lovni tasdiqlaysizmi?'))) return;
+      button.disabled = true;
+      api('POST', '/orders/' + encodeURIComponent(button.dataset.scanConfirm) + '/cash/confirm')
+        .then(function () {
+          toast(tr('Naqd to‘lov tasdiqlandi, chipta faollashtirildi'), 'ok');
+          return scanTicket(normalizeTicketInput($('#cn').value));
+        }).catch(function (error) {
+          button.disabled = false;
+          fail(error);
+        });
     });
     return Promise.resolve();
   }

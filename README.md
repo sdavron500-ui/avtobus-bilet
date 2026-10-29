@@ -9,7 +9,7 @@ Hech qanday tashqi serverga ulanmaydi, boshqa kompaniyaning logotipi, nomi yoki 
 
 ## Tez ishga tushirish
 
-Kerak: Node.js 18 yoki yangiroq.
+Kerak: Node.js 20 yoki yangiroq.
 
 ```bash
 npm install
@@ -36,6 +36,8 @@ Sozlamalar uchun `.env.example` ni `.env` ga nusxalab, kerakli qiymatlarni o'zga
 - To'lov usulini tanlash: karta orqali to'lov yoki kassada naqd pul; kassir/admin naqd pul olinganini tasdiqlagach chipta faollashadi
 - Karta bilan to'lov va SMS tasdiqlash (hozir DEMO rejimida, quyida qarang)
 - QR-kodli chipta, PDF sifatida saqlash (brauzerning chop etish oynasi orqali)
+- Naqd buyurtma jo'nashdan 60 daqiqa oldingacha saqlanadi; mijoz kassaga chipta IDsi/QR bilan kelib to'laydi
+- Reysga kelmagan mijoz pulni qaytarish masalasini jo'nashdan keyingi 24 soat ichida aloqa orqali so'rashi kerak; muddatdan so'ng qaytarilmaydi
 - Chiptalarim: faol, tarix, qaytarilgan; bitta chiptani yoki butun buyurtmani qaytarish
 - Mehmon rejimi (ro'yxatdan o'tmasdan), email bilan ro'yxatdan o'tish, parolni tiklash, profil, akkauntni o'chirish
 - Chiptalarni telefon raqami bo'yicha tiklash
@@ -50,11 +52,36 @@ Sozlamalar uchun `.env.example` ni `.env` ga nusxalab, kerakli qiymatlarni o'zga
 - O'rinlar xaritasi: kim qaysi o'rinda o'tirgani; kassada sotilgan o'rinni bloklash (saytda band ko'rinadi)
 - Reyslar: reyslar avtomatik yaratilmaydi; admin har bir jo'nashni alohida kiritadi. "Jadvallar" ertangi tayyor avtobuslar va bugungi reyslar ro'yxatini ko'rsatadi
 - Avtobuslar (o'rinlar soni, qulayliklar), shaharlar, buyurtmalar
-- Buyurtmalar bo'limida mijozning naqd buyurtmasini topish va pulni olgach "Naqd pul olindi" orqali tasdiqlash
+- Buyurtmalar bo'limida telefon, ism/familiya yoki chipta raqami bo'yicha qidirish; buyurtmalarni reyslar kesimida guruhlash; chiptani ko'rish va QR bilan chop etish; naqd to'lovni tasdiqlash
+- Chipta tekshirish bo'limida kamerani yoqib QR-kodni bevosita skanerlash yoki USB/klaviatura skaneridan foydalanish; chipta IDsi yoki raqamini qo'lda ham kiritish mumkin. Yo'nalish, jo'nash vaqti, yo'lovchi, o'rin va to'lov holatini ko'rish, naqd buyurtmani tasdiqlash va chiptani chop etish
 - "Sotuv" bo'limida reys/o'rin tanlab, yo'lovchi ma'lumotini kiritish va terminalda yoki kassada qabul qilingan to'lovni karta/naqd deb qayd etib chiptani chiqarish. Xalqaro reysda pasport va tug'ilgan sana talab qilinadi.
 - "Hisobot" bo'limida har bir avtobus uchun reys, yo'lovchi, bo'sh o'rin, bandlik va qayd etilgan tushumni ko'rish; yo'lovchi/jami o'rin sonini bosib, joy raqami, ism-familiya, telefon va jinsni ochish mumkin. Borib-qaytish bir xil avtobus teskari yo'nalishda qaytishi va borish reysi yetib kelgandan keyin jo'nashiga qarab bog'lanadi. Hisobotni Excel ochadigan CSV sifatida yuklab olish yoki chop etish mumkin. Karta to'lovi DEMO paytida hisobot ogohlantiradi.
 - Admin sahifasidagi tanlov orqali o'zbek, rus va ingliz tillarini almashtirish
-- Chipta tekshirish: nazoratchi chipta raqamini kiritib, chipta yaroqli ekanini ko'radi
+- Chipta QR kodi faqat chipta ID sini saqlaydi; admin tekshiruv oynasida kamera orqali yoki USB/klaviatura skaneri bilan o'qiladi. Kamera uchun brauzer ruxsati va `localhost` yoki HTTPS ulanishi kerak.
+
+## Android APK va hotspot orqali sinash
+
+`admin` va `client` uchun alohida Android ilovalari GitHub Actions orqali yig'iladi. `main` ga Android fayllari o'zgargan pushdan so'ng GitHub'dagi **Actions → Build Android APKs** ishini ochib, `marshrut-android-apks` artefaktini yuklab oling. APKlar release kaliti bilan imzolanmagan debug buildlar bo'lib, Android o'rnatishda tasdiq so'rashi mumkin.
+
+Admin telefonining o'zida Node.js serverini ishga tushirish uchun Android'da Termux kerak: server Node.js/SQLite backend bo'lgani sabab APKning o'zi server jarayonini ishga tushirmaydi. Termux'ni ishonchli manbadan o'rnating va Android sozlamalarida Termux uchun batareya cheklovini o'chiring.
+
+1. Admin telefonida hotspotni yoqing va Termux'ni oching:
+
+   ```sh
+   pkg update
+   pkg install nodejs-lts git clang make python pkg-config
+   git clone https://github.com/sdavron500-ui/avtobus-bilet.git
+   cd avtobus-bilet
+   bash mobile/termux-run.sh
+   ```
+
+   Birinchi ishga tushishda SQLite moduli telefonda yig'ilishi mumkin va vaqt oladi. Skript kuchli admin parolini yaratib ko'rsatadi; uni saqlang. Server `0.0.0.0:3000` da ishga tushadi, bazasi Termux loyihasining `data` papkasida saqlanadi. Server ishlashi uchun Termux seansini ochiq qoldiring.
+
+2. Admin APK'ni admin telefoniga o'rnating. U serverga `http://127.0.0.1:3000/admin.html` orqali ulanadi.
+3. Mijoz telefonini admin telefoni hotspot'iga ulang va client APK'ni o'rnating. APK Wi-Fi gateway manzilini avtomatik tanlaydi. Ulanmasa, **Server** tugmasida server telefon IP manzilini `http://IP:3000` shaklida kiriting; bu IP Termux server logida ko'rsatiladi.
+4. Admin panelda shahar, avtobus va reys yarating. Client ilovasida reysni topib buyurtma bering, so'ng admin APK'dagi **Buyurtmalar** bo'limida ayni buyurtma va chipta QR'ini tekshiring. Kamera orqali chipta tekshirish uchun admin APK'ga kamera ruxsatini bering.
+
+Serverni hotspotda ochish tarmoqdagi qurilmalarga ulanish imkonini beradi. Hotspot parolini himoyalang va yaratilgan admin parolini hech kimga bermang. Ilova hozir `DEMO=1`: karta/SMS sinov rejimida. Telefon Termux'ni to'xtatsa server ham to'xtaydi; qayta yoqilgandan keyin Termux'da `bash mobile/termux-run.sh` buyrug'ini yana bajaring.
 
 ## Bitta HTML fayl (demo)
 
@@ -64,7 +91,7 @@ haqiqiy sotuv va admin panel yo'q. Qayta yig'ish: `node standalone/build.js`.
 
 ## Haqiqiy ishga tushirishdan oldin (muhim)
 
-1. **To'lov.** Karta uchun hozir `DEMO=1`: pul yechilmaydi, SMS kodi doim `123456`. Naqd to'lovda mijoz buyurtma raqamini kassirga ko'rsatadi; kassir admin paneldagi "Buyurtmalar" bo'limida pul olinganini tasdiqlaydi. O'rinlar odatda 10 daqiqaga band qilinadi. Haqiqiy karta to'lovi uchun `server/payment.js`
+1. **To'lov.** Karta uchun hozir `DEMO=1`: pul yechilmaydi, SMS kodi doim `123456`. Naqd buyurtma jo'nashdan 60 daqiqa oldingacha saqlanadi (`CASH_HOLD_CUTOFF_MINUTES`); mijoz QR/IDni kassirga ko'rsatadi va kassir chipta tekshirish oynasida naqd pulni tasdiqlaydi. Boshqa o'rinlar odatda 10 daqiqaga band qilinadi. Reysga kelmagan mijoz qaytarish masalasini jo'nashdan keyingi 24 soat ichida aloqa orqali ko'tarishi kerak (`NO_SHOW_CONTACT_HOURS`); muddatdan keyin qaytarilmaydi. Haqiqiy karta to'lovi uchun `server/payment.js`
    ichidagi `start()` va `confirm()` ni to'lov provayderi (Payme, Click, Uzum va boshqalar) API'siga ulang va
    `.env` da `DEMO=0` qiling. Karta raqamini o'z serveringizda saqlamang, provayderning to'lov sahifasi yoki tokenidan foydalaning.
    `DEMO=0` bo'lib, provayder ulanmagan bo'lsa, to'lov xato bilan to'xtaydi (soxta to'lov o'tmaydi).
@@ -95,7 +122,7 @@ public/
   js/               core (umumiy), booking (xarid oqimi), account (profil va h.k.), admin
   i18n/             uz.json, ru.json, en.json
 test/
-  smoke.js          backend to'liq oqim sinovi (49 tekshiruv)
+  smoke.js          backend to'liq oqim va regressiya sinovlari
   i18n.js           tarjimalar to'liqligi tekshiruvi
 data/               SQLite bazasi shu yerda yaratiladi (git'ga kirmaydi)
 ```
@@ -107,7 +134,8 @@ npm test
 ```
 
 Vaqtinchalik baza bilan butun oqimni tekshiradi: qidirish, o'rin ushlash, buyurtma, to'lov, qaytarish,
-ro'yxatdan o'tish, parolni tiklash, admin va xavfsizlik holatlari (boshqa mijoz buyurtmasini ko'ra olmasligi, band o'rinni sota olmasligi).
+ro'yxatdan o'tish, parolni tiklash, admin va xavfsizlik holatlari; shuningdek QR/ID tekshiruvi, naqd tasdiqlash,
+naqd buyurtmaning tugash muddati va kelmagan yo'lovchi uchun aloqa muddati.
 
 ## Texnik eslatmalar
 

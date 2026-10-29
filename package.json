@@ -10,10 +10,11 @@
     "test": "node test/i18n.js && node test/smoke.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
-    "better-sqlite3": "^11.5.0",
+    "@zxing/browser": "^0.2.1",
+    "better-sqlite3": "^12.11.1",
     "express": "^4.21.0",
     "qrcode": "^1.5.4"
   },

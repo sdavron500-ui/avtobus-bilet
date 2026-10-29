@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const os = require('os');
 const cfg = require('./config');
 
 const app = express();
@@ -19,6 +20,7 @@ const admin = require('./routes/admin');
 app.use('/api/admin', admin.router);
 app.use('/api', pub.router);
 
+app.use('/vendor/zxing', express.static(path.join(__dirname, '..', 'node_modules', '@zxing', 'browser', 'umd')));
 app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'] }));
 
 // Xatoliklar
@@ -31,9 +33,19 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 });
 
 if (require.main === module) {
-  app.listen(cfg.PORT, () => {
-    console.log(`${cfg.BRAND} ishga tushdi: http://localhost:${cfg.PORT}`);
-    console.log(`Admin panel: http://localhost:${cfg.PORT}/admin.html`);
+  const server = app.listen(cfg.PORT, cfg.HOST, () => {
+    const port = server.address().port;
+    console.log(`${cfg.BRAND} ishga tushdi: http://localhost:${port}`);
+    console.log(`Admin panel: http://localhost:${port}/admin.html`);
+    if (cfg.HOST === '0.0.0.0') {
+      for (const addresses of Object.values(os.networkInterfaces())) {
+        for (const address of addresses || []) {
+          if ((address.family === 'IPv4' || address.family === 4) && !address.internal) {
+            console.log(`Mahalliy tarmoq: http://${address.address}:${port}`);
+          }
+        }
+      }
+    }
     if (cfg.ADMIN_PASSWORD === 'admin123') console.warn("DIQQAT: admin paroli standart (admin123). .env da ADMIN_PASSWORD ni o'zgartiring!");
     if (cfg.DEMO) console.warn("DEMO rejim: to'lov soxta, SMS kodi 123456.");
   });

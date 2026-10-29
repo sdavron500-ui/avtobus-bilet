@@ -477,7 +477,8 @@ route(/^\/pay\/([a-f0-9]+)$/, async ([id]) => {
             <div>${esc(t('pay.cash_seats', { seats: order.tickets.map((ticket) => ticket.seat).join(', ') }))}</div>
             <div>${esc(t('pay.cash_amount', { amount: money(order.total) }))}</div>
           </div>` : ''}
-          ${method === 'cash' ? `<p class="hint" style="margin:0">${esc(t('pay.cash_expiry', { min: S.config.holdMinutes || 10 }))}</p>` : ''}
+          ${method === 'cash' ? `<p class="hint" style="margin:0">${esc(t('pay.cash_hold_until', { min: S.config.cashHoldCutoffMinutes || 60 }))}</p>
+            <div class="stack">${order.tickets.map((ticket) => `<a class="link" href="#/ticket/${esc(ticket.id)}">${esc(t('pay.cash_ticket', { name: ticket.fio, seat: ticket.seat }))}</a>`).join('')}</div>` : ''}
           ${method !== 'cash' ? `<button class="btn btn-lime block" id="chooseCash" type="button">${esc(t('pay.cash_choose'))}</button>` : ''}
         </div>
       </div>
@@ -577,7 +578,7 @@ route(/^\/done\/([a-f0-9]+)$/, async ([id]) => {
 /* ================= Chipta ================= */
 function ticketCard(k) {
   const past = k.status === 'active' && k.departAt <= new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tashkent' }).slice(0, 16);
-  const st = k.status === 'cancelled' ? 'cancelled' : k.status === 'returned' ? 'returned' : past ? 'past' : 'active';
+  const st = k.status === 'pending' ? 'pending' : k.status === 'cancelled' ? 'cancelled' : k.status === 'returned' ? 'returned' : past ? 'past' : 'active';
   const phone = String(k.contactPhone || '').replace(/[^\d+]/g, '');
   return `<article class="tk" aria-label="${esc(t('ticket.title'))}">
     <div class="tk-main">
@@ -594,14 +595,17 @@ function ticketCard(k) {
         <div><span>${esc(t('platform'))}</span><b>${esc(k.platform || '—')}</b></div>
         <div><span>${esc(t('ticket.passenger'))}</span><b>${esc(k.fio)}</b></div>
         <div><span>${esc(t('ticket.seat'))}</span><b>${k.seat}</b></div>
+        <div><span>${esc(t('ticket.id'))}</span><b>${esc(k.id)}</b></div>
         <div><span>${esc(t('ticket.number'))}</span><b>${esc(k.number)}</b></div>
+        <div><span>${esc(t('ticket.phone'))}</span><b>${esc(k.phone)}</b></div>
+        <div><span>${esc(t('ticket.payment_method'))}</span><b>${esc(t(k.paymentMethod === 'cash' ? 'payment.cash' : 'payment.card'))}</b></div>
         <div><span>${esc(t('bus'))}</span><b>${esc(k.bus.model || k.bus.name)}</b></div>
         <div><span>${esc(t('ticket.price'))}</span><b>${esc(money(k.price))}</b></div>
         <div><span>${esc(t('ticket.bought'))}</span><b>${esc(fmtDay(k.boughtAt))}</b></div>
       </div>
     </div>
     <div class="tk-qr">
-      ${k.status === 'active' ? `<img src="/api/tickets/${esc(k.id)}/qr.svg" alt="QR" width="170" height="170">` : ''}
+      <img src="/api/tickets/${esc(k.id)}/qr.svg" alt="QR" width="170" height="170" loading="eager">
       <div class="hint">${esc(t('ticket.qr_note'))}</div>
     </div>
   </article>`;
@@ -610,6 +614,7 @@ function ticketCard(k) {
 route(/^\/ticket\/([a-f0-9]+)$/, async ([id]) => {
   const k = await api('GET', '/tickets/' + id);
   let activeInOrder = 1;
+  const supportPhone = String(k.contactPhone || S.config.contact.phone || '').replace(/[^\d+]/g, '');
   try {
     const o = await api('GET', '/orders/' + k.orderId);
     activeInOrder = o.tickets.filter((x) => x.status === 'active').length;
@@ -617,6 +622,11 @@ route(/^\/ticket\/([a-f0-9]+)$/, async ([id]) => {
   view(`<div class="wrap page"><div class="narrow" style="max-width:820px">
     ${pageHead(t('ticket.title'), '#/tickets')}
     ${ticketCard(k)}
+    ${k.status === 'active' && past ? `<div class="note warn noprint">
+      ${k.noShowContactOpen
+        ? esc(t('ticket.no_show_contact', { hours: k.noShowContactHours })) + (supportPhone ? ` <a class="link" href="tel:${esc(supportPhone)}">${esc(t('ticket.contact'))}: ${esc(k.contactPhone || S.config.contact.phone)}</a>` : '')
+        : esc(t('ticket.no_show_expired', { hours: k.noShowContactHours }))}
+    </div>` : ''}
     <div class="noprint" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
       <button class="btn" id="pdf" type="button">${esc(t('ticket.pdf'))}</button>
       ${k.canReturn ? `<button class="btn btn-danger" id="ret" type="button">${esc(t('ticket.return'))}</button>` : ''}
@@ -624,7 +634,23 @@ route(/^\/ticket\/([a-f0-9]+)$/, async ([id]) => {
     ${k.status === 'active' && !k.canReturn ? `<p class="hint noprint">${esc(t('ticket.return_closed', { min: S.config.returnBeforeMin }))}</p>` : ''}
     <p class="hint noprint">${esc(t('ticket.return_rule', { min: S.config.returnBeforeMin }))}</p>
   </div></div>`);
-  q$('#pdf').addEventListener('click', () => { toast(t('ticket.pdf_hint')); setTimeout(() => window.print(), 400); });
+  const qrImage = q$('.tk-qr img');
+  if (qrImage) qrImage.addEventListener('error', () => {
+    const message = document.createElement('span');
+    message.className = 'hint';
+    message.textContent = t('err.server_error');
+    qrImage.replaceWith(message);
+  }, { once: true });
+  if (qrImage && qrImage.complete && qrImage.naturalWidth === 0)
+    qrImage.dispatchEvent(new Event('error'));
+  q$('#pdf').addEventListener('click', async () => {
+    toast(t('ticket.pdf_hint'));
+    if (qrImage && !qrImage.complete) await new Promise((resolve) => {
+      qrImage.addEventListener('load', resolve, { once: true });
+      qrImage.addEventListener('error', resolve, { once: true });
+    });
+    setTimeout(() => window.print(), 100);
+  });
   const ret = q$('#ret');
   if (ret) ret.addEventListener('click', () => {
     const doReturn = (all) => async (b) => {

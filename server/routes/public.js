@@ -26,9 +26,17 @@ r.use((req, res, next) => {
 
 function expireStale() {
   const limit = Date.now() - cfg.HOLD_MS;
+  const cashCutoff = U.addMinutes(U.nowLocal(), cfg.CASH_HOLD_CUTOFF_MINUTES);
   db.prepare(`UPDATE tickets SET status = 'cancelled' WHERE status = 'pending' AND order_id IN
-    (SELECT id FROM orders WHERE status = 'pending' AND created_ms < ?)`).run(limit);
-  db.prepare("UPDATE orders SET status = 'expired' WHERE status = 'pending' AND created_ms < ?").run(limit);
+    (SELECT o.id FROM orders o JOIN trips t ON t.id = o.trip_id
+      WHERE o.status = 'pending' AND
+        ((o.payment_method = 'cash' AND t.depart_at <= ?) OR
+         (o.payment_method != 'cash' AND o.created_ms < ?)))`).run(cashCutoff, limit);
+  db.prepare(`UPDATE orders SET status = 'expired' WHERE status = 'pending' AND id IN
+    (SELECT o.id FROM orders o JOIN trips t ON t.id = o.trip_id
+      WHERE o.status = 'pending' AND
+        ((o.payment_method = 'cash' AND t.depart_at <= ?) OR
+         (o.payment_method != 'cash' AND o.created_ms < ?)))`).run(cashCutoff, limit);
   db.prepare('DELETE FROM holds WHERE expires_at < ?').run(Date.now());
 }
 
@@ -73,7 +81,7 @@ function getTrip(id) {
 }
 
 const ticketSelect = `
-SELECT k.*, o.phone, o.user_id, o.guest_key, o.created_at AS bought_at, o.status AS order_status, o.total AS order_total,
+SELECT k.*, o.phone, o.payment_method, o.user_id, o.guest_key, o.created_at AS bought_at, o.status AS order_status, o.total AS order_total,
   t.depart_at, t.arrive_at, t.platform, t.duration_min, t.status AS trip_status,
   t.notice_reason, t.notice_phone,
   f.name_uz AS f_uz, f.name_ru AS f_ru, f.name_en AS f_en, f.country AS f_country,
@@ -87,12 +95,16 @@ JOIN cities c ON c.id = t.to_id
 JOIN buses b ON b.id = t.bus_id`;
 
 function ticketOut(k) {
+  const minutesAfterDeparture = U.diffMinutes(k.depart_at, U.nowLocal());
   return {
     id: k.id, orderId: k.order_id, number: k.number, seat: k.seat_no, fio: k.fio, gender: k.gender,
     passport: k.passport, birth: k.birth, price: k.price, status: k.status, phone: k.phone,
+    paymentMethod: k.payment_method,
     boughtAt: k.bought_at, departAt: k.depart_at, arriveAt: k.arrive_at, platform: k.platform,
     duration: k.duration_min, tripStatus: k.trip_status, noticeReason: k.notice_reason || '',
     contactPhone: k.notice_phone || '',
+    noShowContactHours: cfg.NO_SHOW_CONTACT_HOURS,
+    noShowContactOpen: minutesAfterDeparture >= 0 && minutesAfterDeparture <= cfg.NO_SHOW_CONTACT_HOURS * 60,
     from: { uz: k.f_uz, ru: k.f_ru, en: k.f_en }, to: { uz: k.c_uz, ru: k.c_ru, en: k.c_en },
     foreign: k.f_country !== 'UZ' || k.c_country !== 'UZ',
     bus: { name: k.bus_name, model: k.bus_model },
@@ -105,6 +117,7 @@ function ticketOut(k) {
 r.get('/config', (req, res) => {
   res.json({
     brand: cfg.BRAND, feePercent: cfg.FEE_PERCENT, holdMinutes: cfg.HOLD_MS / 60000,
+    cashHoldCutoffMinutes: cfg.CASH_HOLD_CUTOFF_MINUTES, noShowContactHours: cfg.NO_SHOW_CONTACT_HOURS,
     maxSeats: cfg.MAX_SEATS, demo: cfg.DEMO, returnBeforeMin: cfg.RETURN_BEFORE_MIN,
     contact: {
       phone: cfg.CONTACT_PHONE, telegram: cfg.CONTACT_TELEGRAM, email: cfg.CONTACT_EMAIL,
@@ -258,10 +271,14 @@ function orderOut(id) {
   if (!o) throw new HttpError(404, 'order_not_found');
   const tickets = db.prepare(ticketSelect + ' WHERE k.order_id = ? ORDER BY k.seat_no').all(id).map(ticketOut);
   const t = getTrip(o.trip_id);
+  const expiresAt = o.payment_method === 'cash'
+    ? Date.now() + Math.max(0, U.diffMinutes(U.nowLocal(),
+      U.addMinutes(t.depart_at, -cfg.CASH_HOLD_CUTOFF_MINUTES))) * 60000
+    : o.created_ms + cfg.HOLD_MS;
   return {
     id: o.id, status: o.status, phone: o.phone, amount: o.amount, fee: o.fee, total: o.total,
     paymentMethod: o.payment_method, paymentStarted: !!o.sms_code, createdAt: o.created_at, paidAt: o.paid_at,
-    expiresAt: o.created_ms + cfg.HOLD_MS, trip: tripOut(t), tickets
+    expiresAt, trip: tripOut(t), tickets
   };
 }
 
@@ -313,6 +330,9 @@ r.post('/orders/:id/cash', (req, res) => {
   const order = loadOrder(req);
   if (order.status !== 'pending') throw new HttpError(409, order.status === 'expired' ? 'hold_expired' : 'order_closed');
   if (order.sms_code) throw new HttpError(409, 'payment_method_locked');
+  const trip = getTrip(order.trip_id);
+  if (trip.depart_at <= U.addMinutes(U.nowLocal(), cfg.CASH_HOLD_CUTOFF_MINUTES))
+    throw new HttpError(409, 'cash_cutoff');
   db.prepare("UPDATE orders SET payment_method = 'cash' WHERE id = ? AND status = 'pending' AND sms_code IS NULL")
     .run(order.id);
   res.json(orderOut(order.id));
@@ -357,6 +377,7 @@ r.get('/tickets', (req, res) => {
 });
 
 function loadTicket(req) {
+  expireStale();
   const k = db.prepare(ticketSelect + ' WHERE k.id = ?').get(req.params.id);
   if (!k) throw new HttpError(404, 'ticket_not_found');
   if (!owns(req, k)) throw new HttpError(403, 'forbidden');
@@ -365,11 +386,13 @@ function loadTicket(req) {
 
 r.get('/tickets/:id', (req, res) => res.json(ticketOut(loadTicket(req))));
 
-// QR-kod: chipta raqami. Nazoratchi admin paneldan tekshiradi.
+// QR faqat chipta ID sini saqlaydi; amaldagi holatni admin tekshiruv oynasi tasdiqlaydi.
 r.get('/tickets/:id/qr.svg', wrap(async (req, res) => {
-  const k = db.prepare('SELECT number FROM tickets WHERE id = ?').get(req.params.id);
+  expireStale();
+  const k = db.prepare('SELECT id FROM tickets WHERE id = ?').get(req.params.id);
   if (!k) throw new HttpError(404, 'ticket_not_found');
-  const svg = await QRCode.toString('TICKET:' + k.number, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+  const svg = await QRCode.toString('TICKET:' + k.id, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+  res.setHeader('Cache-Control', 'no-store');
   res.type('image/svg+xml').send(svg);
 }));
 

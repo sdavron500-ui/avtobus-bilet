@@ -12,7 +12,9 @@ const app = require('../server/index.js');
 const { db } = require('../server/db');
 const { seed } = require('../server/seed');
 const { nowLocal, addDays, addMinutes } = require('../server/util');
+const cfg = require('../server/config');
 
+assert.strictEqual(cfg.HOST, '127.0.0.1', 'server should stay local unless LAN access is enabled');
 assert.strictEqual(db.prepare('SELECT COUNT(*) c FROM cities').get().c, 0, 'server start must not add demo data');
 seed();
 const fixtureCities = db.prepare('SELECT id, name_uz, country FROM cities').all();
@@ -69,6 +71,9 @@ async function api(method, url, body, headers = {}) {
 
   const cities = (await api('GET', '/api/cities')).data;
   ok('shaharlar bor', cities.length >= 10);
+  const qrScannerAsset = await fetch(base + '/vendor/zxing/zxing-browser.min.js');
+  ok('admin kamera QR skaner kutubxonasi lokal serverdan yuklanadi',
+    qrScannerAsset.status === 200 && (await qrScannerAsset.text()).includes('ZXingBrowser'));
   const tosh = cities.find((c) => c.uz === 'Toshkent').id;
   const sam = cities.find((c) => c.uz === 'Samarqand').id;
 
@@ -94,12 +99,38 @@ async function api(method, url, body, headers = {}) {
   });
   const cashSelected = await api('POST', `/api/orders/${cashOrder.data.id}/cash`);
   const cashOrderId = cashOrder.data.id;
+  const paymentConfig = (await api('GET', '/api/config')).data;
   ok('mijoz naqd to\'lovni tanlaydi va buyurtma kassaga yoziladi',
     cashSelected.status === 200 && cashSelected.data.paymentMethod === 'cash' && cashSelected.data.status === 'pending');
   ok('naqd to\'lov tanlanganda chipta kassir tasdig\'igacha faol bo\'lmaydi',
     cashSelected.data.tickets.length === 1 && cashSelected.data.tickets[0].status === 'pending');
+  db.prepare('UPDATE orders SET created_ms = ? WHERE id = ?').run(Date.now() - cfg.HOLD_MS - 1000, cashOrderId);
+  const extendedCashOrder = await api('GET', `/api/orders/${cashOrderId}`);
+  ok('naqd buyurtma 10 daqiqalik ushlashdan uzoq saqlanadi',
+    paymentConfig.cashHoldCutoffMinutes === 60 && paymentConfig.noShowContactHours === 24 &&
+    extendedCashOrder.status === 200 && extendedCashOrder.data.status === 'pending' &&
+    extendedCashOrder.data.expiresAt > Date.now() + 10 * 60 * 1000);
+  const pendingQr = await fetch(base + `/api/tickets/${cashSelected.data.tickets[0].id}/qr.svg`);
+  ok('kassada kutayotgan naqd chipta uchun ID asosidagi QR kodi beriladi',
+    pendingQr.status === 200 && (await pendingQr.text()).includes('<svg'));
+  const pendingTicket = await api('GET', `/api/tickets/${cashSelected.data.tickets[0].id}`);
+  ok('mijoz naqd chipta IDsi va to‘lov usulini ko‘radi',
+    pendingTicket.status === 200 && pendingTicket.data.paymentMethod === 'cash');
   ok('naqd buyurtma uchun karta SMS tasdig\'i ishlamaydi',
     (await api('POST', `/api/orders/${cashOrderId}/confirm`, { code: '123456' })).status === 409);
+  const cutoffTrip = trips.find((candidate) => candidate.id !== trip.id && candidate.id !== cashTrip.id);
+  const cutoffHold = await api('POST', '/api/holds', { tripId: cutoffTrip.id, seats: [8] });
+  const cutoffOrder = await api('POST', '/api/orders', {
+    tripId: cutoffTrip.id, holdToken: cutoffHold.data.holdToken, phone: '90 123 45 67',
+    passengers: [{ seat: 8, fio: 'Olim Valiyev', gender: 'm' }]
+  });
+  const cutoffDepartAt = db.prepare('SELECT depart_at FROM trips WHERE id = ?').get(cutoffTrip.id).depart_at;
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(
+    addMinutes(nowLocal(), cfg.CASH_HOLD_CUTOFF_MINUTES - 1), cutoffTrip.id);
+  const rejectedCash = await api('POST', `/api/orders/${cutoffOrder.data.id}/cash`);
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(cutoffDepartAt, cutoffTrip.id);
+  ok('jo‘nashga bir soatdan kam qolganda naqd buyurtma qabul qilinmaydi',
+    rejectedCash.status === 409 && rejectedCash.data.error === 'cash_cutoff');
 
   const map1 = (await api('GET', `/api/trips/${trip.id}`)).data;
   ok('o\'rinlar xaritasi', map1.seats.length === trip.total && map1.seats.every((s) => s.status === 'free'));
@@ -123,6 +154,9 @@ async function api(method, url, body, headers = {}) {
   ok('buyurtma yaratildi', o.status === 200 && o.data.status === 'pending');
   ok('narx va yig\'im', o.data.amount === trip.price * 2 && o.data.fee === Math.round(trip.price * 2 * 0.02) && o.data.total === o.data.amount + o.data.fee);
   const orderId = o.data.id;
+  const pendingCardQr = await fetch(base + `/api/tickets/${o.data.tickets[0].id}/qr.svg`);
+  ok('to‘lov hali yakunlanmagan chipta uchun ham skanerlash QR kodi beriladi',
+    pendingCardQr.status === 200 && (await pendingCardQr.text()).includes('<svg'));
   ok('boshqa mehmon buyurtmani ko\'ra olmaydi', (await api('GET', `/api/orders/${orderId}`, null, { 'x-guest': 'someone-else-key' })).status === 403);
 
   // 3) to'lov
@@ -141,6 +175,21 @@ async function api(method, url, body, headers = {}) {
   ok('faol chiptalar 2 ta', mine.length === 2);
   const qr = await fetch(base + `/api/tickets/${mine[0].id}/qr.svg`);
   ok('QR svg', qr.status === 200 && (await qr.text()).includes('<svg'));
+  const originalDepartAt = db.prepare('SELECT depart_at FROM trips WHERE id = ?').get(trip.id).depart_at;
+  const ticketPath = `/api/tickets/${mine[0].id}`;
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(addMinutes(nowLocal(), 10), trip.id);
+  const beforeDepartureTicket = await api('GET', ticketPath);
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(addMinutes(nowLocal(), -10), trip.id);
+  const withinNoShowWindowTicket = await api('GET', ticketPath);
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(
+    addMinutes(nowLocal(), -(cfg.NO_SHOW_CONTACT_HOURS * 60 + 1)), trip.id);
+  const outsideNoShowWindowTicket = await api('GET', ticketPath);
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(originalDepartAt, trip.id);
+  ok('no-show aloqa muddati jo‘nashdan keyingi 24 soat bilan cheklanadi',
+    beforeDepartureTicket.data.noShowContactOpen === false &&
+    withinNoShowWindowTicket.data.noShowContactOpen === true &&
+    withinNoShowWindowTicket.data.noShowContactHours === 24 &&
+    outsideNoShowWindowTicket.data.noShowContactOpen === false);
   ok('boshqa mehmonga chiptalar ko\'rinmaydi', (await api('GET', '/api/tickets?status=active', null, { 'x-guest': 'someone-else-key' })).data.length === 0);
 
   // 5) band o'rin endi sotilmaydi
@@ -198,6 +247,54 @@ async function api(method, url, body, headers = {}) {
   const al = await api('POST', '/api/admin/login', { password: 'test-admin' });
   const A = { 'x-admin': al.data.token };
   ok('admin kirdi', al.status === 200);
+  ok('chipta skaneridagi ID tekshiruvi adminsiz ishlamaydi',
+    (await api('GET', `/api/admin/ticket/${cashSelected.data.tickets[0].id}`)).status === 401);
+  const scannedCash = await api('GET', `/api/admin/ticket/TICKET:${cashSelected.data.tickets[0].id}`, null, A);
+  ok('QR ID skanerlashda yo‘nalish, yo‘lovchi va naqd to‘lov ma’lumoti chiqadi',
+    scannedCash.status === 200 && scannedCash.data.cashPending &&
+    scannedCash.data.paymentMethod === 'cash' && scannedCash.data.fio === 'Olim Valiyev' &&
+    scannedCash.data.seat === 5 && scannedCash.data.route.includes('Toshkent'));
+  ok('skaner eski 10 xonali chipta raqamini ham qabul qiladi',
+    (await api('GET', `/api/admin/ticket/${cashSelected.data.tickets[0].number}`, null, A)).data.id ===
+      cashSelected.data.tickets[0].id);
+  ok('skaner noto‘g‘ri chipta identifikatorini rad etadi',
+    (await api('GET', '/api/admin/ticket/not-a-ticket', null, A)).status === 400);
+  ok('buyurtma chiptalarining batafsil ma’lumoti adminsiz ochilmaydi',
+    (await api('GET', `/api/admin/orders/${cashOrderId}`)).status === 401);
+  const orderDetails = await api('GET', `/api/admin/orders/${cashOrderId}`, null, A);
+  ok('admin buyurtmadan QR/chop etish uchun to‘liq chipta ma’lumotlarini oladi',
+    orderDetails.status === 200 && orderDetails.data.tickets.length === 1 &&
+    orderDetails.data.tickets[0].id === cashSelected.data.tickets[0].id &&
+    orderDetails.data.tickets[0].number === cashSelected.data.tickets[0].number &&
+    orderDetails.data.tickets[0].fio === 'Olim Valiyev' &&
+    orderDetails.data.tickets[0].phone === '+998901234567');
+  const groupedOrders = await api('GET', '/api/admin/orders', null, A);
+  ok('buyurtmalar javobida reys bo‘yicha guruhlash va chipta raqami uchun kalitlar bor',
+    groupedOrders.status === 200 && groupedOrders.data.some((order) =>
+      order.id === cashOrderId && order.trip_id === cashTrip.id &&
+      order.ticket_numbers.includes(cashSelected.data.tickets[0].number)));
+  const searchedByPhone = await api('GET', '/api/admin/orders?q=901234567', null, A);
+  const searchedByName = await api('GET', '/api/admin/orders?q=Olim%20Valiyev', null, A);
+  const searchedByNumber = await api('GET',
+    `/api/admin/orders?q=${cashSelected.data.tickets[0].number}`, null, A);
+  ok('admin buyurtmalarni telefon, ism/familiya va chipta raqami bilan qidira oladi',
+    [searchedByPhone, searchedByName, searchedByNumber].every((result) =>
+      result.status === 200 && result.data.some((order) => order.id === cashOrderId)));
+  const expiryHold = await api('POST', '/api/holds', { tripId: cutoffTrip.id, seats: [6] });
+  const expiryOrder = await api('POST', '/api/orders', {
+    tripId: cutoffTrip.id, holdToken: expiryHold.data.holdToken, phone: '90 123 45 67',
+    passengers: [{ seat: 6, fio: 'Ali Valiyev', gender: 'm' }]
+  });
+  const expiryCash = await api('POST', `/api/orders/${expiryOrder.data.id}/cash`);
+  const expiryTripDepartAt = db.prepare('SELECT depart_at FROM trips WHERE id = ?').get(cutoffTrip.id).depart_at;
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(
+    addMinutes(nowLocal(), cfg.CASH_HOLD_CUTOFF_MINUTES - 1), cutoffTrip.id);
+  const expiredCashOrder = await api('GET', `/api/orders/${expiryOrder.data.id}`);
+  const expiredCashQr = await fetch(base + `/api/tickets/${expiryCash.data.tickets[0].id}/qr.svg`);
+  db.prepare('UPDATE trips SET depart_at = ? WHERE id = ?').run(expiryTripDepartAt, cutoffTrip.id);
+  ok('naqd joy jo‘nashdan bir soat oldin bo‘shaydi, QR esa holatni tekshirish uchun qoladi',
+    expiryCash.status === 200 && expiredCashOrder.data.status === 'expired' &&
+    expiredCashQr.status === 200 && (await expiredCashQr.text()).includes('<svg'));
   const saleConfig = await api('GET', '/api/admin/sales-config', null, A);
   ok('kassadagi sotuvning xizmat haqi va karta demo holati API orqali beriladi',
     saleConfig.status === 200 && saleConfig.data.feePercent === 2 && saleConfig.data.demoCardPayments === true);
